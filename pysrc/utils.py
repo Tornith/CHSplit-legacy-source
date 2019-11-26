@@ -96,4 +96,4 @@ def log(logger, level, msg):
 
 def generate_default_cfg():
     with open("config.ini", 'w+') as config:
-        config.write("[config]\ngame_version=23_2_2\ndebug_mode=false")
+        config.write("[config]\ngame_version=23_2_2\ndebug_mode=true")

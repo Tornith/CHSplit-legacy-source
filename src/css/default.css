@@ -408,6 +408,7 @@ aside.opened .sidebar-menu{
 main{
     padding-left: var(--sidebar-width-closed);
     width: 100vw;
+    height: 100%;
     background: var(--mainbar-background);
 }
 
@@ -555,7 +556,7 @@ main.sidebarOpened::after{
     flex-direction: column;
     justify-content: center;
     align-items: stretch;
-    height: calc(100% - var(--panel-song-height) - var(--panel-progress-bar-height) - var(--header-height) - var(--panel-progress-bar-height)/2 - 1px);
+    height: calc(100% - var(--panel-song-height) - var(--panel-progress-bar-height) - var(--panel-progress-bar-height)/2 - 1px);
     overflow-y: auto;
     background: var(--section-background-odd);
     scroll-behavior: smooth;

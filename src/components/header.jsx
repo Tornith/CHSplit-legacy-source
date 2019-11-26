@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import iconClose from '../svg/window-close.svg';
 import iconMaximize from '../svg/window-maximize.svg';
 import iconMinimize from '../svg/window-minimize.svg';
-const { remote, ipcRenderer } = window.require('electron');
+const { remote } = window.require('electron');
 
 class Header extends Component {
     render() {

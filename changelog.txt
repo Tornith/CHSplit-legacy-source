@@ -1,0 +1,6 @@
+v0.1.1 - Hotfix
+	- Fix - When restarting from the endscreen the split file doesn't get properly loaded
+	- Fix - Score screen disappears when in end screen in-game
+	- Fix - Empty space below section bar when there are few sections
+	
+v0.1 - Initial Pre-Release

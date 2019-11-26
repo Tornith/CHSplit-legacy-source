@@ -6,17 +6,18 @@ from utils import log
 
 
 class SplitFile(object):
-    def __init__(self, song_name, speed, chart_hash, logger=None):
+    def __init__(self, song_name, speed, chart_hash, exec_path=".", logger=None):
         self.name = song_name
         self.speed = speed
         self.hash = chart_hash
         self.splits = {}
+        self.exec_path = exec_path
         self.logger = logger
         self.load_file()
 
     def load_file(self):
         conv_name = "".join(x for x in self.name if x.isalnum())
-        path = "../splits/" + conv_name + "_" + str(self.speed) + "." + self.hash[:8] + ".splits"
+        path = self.exec_path + "/splits/" + conv_name + "_" + str(self.speed) + "." + self.hash[:8] + ".splits"
         if os.path.isfile(path):
             try:
                 with open(path, 'rb') as split_file:
@@ -31,7 +32,7 @@ class SplitFile(object):
 
     def save_file(self):
         conv_name = "".join(x for x in self.name if x.isalnum())
-        path = "../splits/" + conv_name + "_" + str(self.speed) + "." + self.hash[:8] + ".splits"
+        path = self.exec_path + "/splits/" + conv_name + "_" + str(self.speed) + "." + self.hash[:8] + ".splits"
         try:
             with open(path, 'wb') as split_file:
                 pickle.dump(self.splits, split_file)

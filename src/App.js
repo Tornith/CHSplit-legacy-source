@@ -19,6 +19,7 @@ class App extends Component {
         song: null,
         game: null,
         pb: null,
+        forceReload: false,
         notifications: [],
         newUpdate: false
     };
@@ -60,13 +61,14 @@ class App extends Component {
                 case "pregame":
                     break;
                 case "game":
-                    if (!this.state.sections.length){
+                    if (!this.state.sections.length || this.state.forceReload){
                         const fetchSong = this.fetchData('song');
                         const fetchPB = this.fetchData('pb');
                         const fetchGame = this.fetchData('game');
                         Promise.all([fetchSong, fetchPB, fetchGame]).then(() => {
                             const sections = this.loadSections(this.state.song["sections"], this.state.pb, this.state.game["splits"]);
                             this.setState({sections});
+                            this.setState({forceReload: false});
                         });
                     }
                     else{
@@ -74,10 +76,11 @@ class App extends Component {
                     }
                     break;
                 case "endscreen":
+                    this.setState({forceReload: true});
                     break;
                 default:
                     console.error("Unexpected error: Invalid game state (" + this.state.gameState + ")");
-                    this.pushNotification("Unexpected error: Invalid game state: " + this.state.gameState + ".", "error", true);
+                    this.pushNotification("invalid_gamestate", "Unexpected error: Invalid game state: " + this.state.gameState + ".", "error", true);
             }
         }).catch((e) => {
             console.error("Unable to retrieve game state " + e);
@@ -111,15 +114,6 @@ class App extends Component {
                 });
             });
         }
-/*        else{
-            holder.push({
-                name: "The Entire Song (The fact that this song has no sections beats the entire point of this program randylWelp)",
-                time: 0,
-                active: true,
-                splitScore: undefined,
-                pbScore: (pbSplits != null) ? pbSplits["0"] : null
-            });
-        }*/
         return holder;
     };
 
@@ -130,7 +124,6 @@ class App extends Component {
         }).catch((e) => {
             console.error("Unable to retrieve section info");
             //this.pushNotification("Unexpected error: Unable to retrieve section info.", "error", true);
-            this.setState({sections: []})
         });
     };
 
@@ -146,6 +139,7 @@ class App extends Component {
     };
 
     resetGameData = () => {
+        console.log("Resetting game data...");
         const defaultState = {
             sections: [],
             song: null,
@@ -175,8 +169,8 @@ class App extends Component {
         if (this.state.sections.length &&
             this.state.song != null &&
             this.state.game != null &&
-            this.state.pb != null &&
-            this.state.gameState === "game") return "game";
+            this.state.pb != null)
+            return this.state.gameState;
     };
 
     render() {

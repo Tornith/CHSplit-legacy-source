@@ -1,16 +1,18 @@
 {
   "name": "chsplit",
   "author": "Tornith",
-  "version": "0.1.0",
-  "description": "A scoring tool for Clone Hero",
+  "version": "0.1.1",
+  "description": "CHSplit",
   "private": true,
   "dependencies": {
     "electron-is-dev": "^1.1.0",
+    "open": "^7.0.0",
+    "ps-tree": "^1.2.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-native": "^0.61.4",
     "react-scripts": "3.2.0",
-    "open": "^7.0.0"
+    "request-promise": "^4.2.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -20,11 +22,14 @@
     "electron-dev": "concurrently \"yarn start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack": "electron-builder build --win portable",
     "preelectron-pack": "yarn build",
-    "py-build": "pyinstaller ./pysrc/CHSplit.py -y --onefile --noconsole --name CHSplit --icon ./public/favicon.ico --distpath ./pydist --workpath ./pybuild"
+    "py-build": "pyinstaller ./pysrc/CHSplit.py -y --onefile --noconsole --name CHSplit --icon ./public/favicon.ico --distpath ./pydist --workpath ./pybuild",
+    "build-app": "yarn py-build && yarn electron-pack"
   },
   "main": "public/electron.js",
   "build": {
     "appId": "com.tornith.chsplit",
+    "productName": "CHSplit",
+    "buildVersion": "0.1.1",
     "files": [
       "pydist/**/*",
       "build/**/*",
@@ -33,6 +38,12 @@
     "directories": {
       "buildResources": "assets"
     }
+  },
+  "nsisWeb": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "runAfterFinish": false
   },
   "homepage": "./",
   "eslintConfig": {
@@ -54,6 +65,7 @@
     "concurrently": "^5.0.0",
     "electron": "^7.1.1",
     "electron-builder": "^21.2.0",
+    "electron-react-devtools": "^0.5.3",
     "wait-on": "^3.3.0"
   }
 }

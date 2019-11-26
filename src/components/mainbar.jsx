@@ -19,6 +19,12 @@ class Mainbar extends Component {
                         <h2>Start playing a song!</h2> <p>CHSplit will automatically detect that you're playing a song and make the splits for you!</p>
                     </div>
                 }
+                {this.props.renderState === "endscreen" &&
+                <React.Fragment>
+                    <SongInfo data={this.props.data}/>
+                    <Sections data={this.props.data} sections={this.props.sections}/>
+                </React.Fragment>
+                }
             </main>
         );
     }

@@ -1,6 +1,7 @@
 import sys
 import threading
-
+from flask import Flask, jsonify
+from cheroot.wsgi import Server as WSGIServer, PathInfoDispatcher
 from finitestatemachine import FSMWithMemory, State
 from instancemanager import InstanceManager
 from songdata import SongData
@@ -11,8 +12,30 @@ import os
 import time
 import logging
 import re
-from flask import Flask, jsonify
 import traceback
+
+
+# Script args =============================
+
+def parse_port():
+    port = 58989
+    try:
+        if len(sys.argv) > 1:
+            port = int(sys.argv[1])
+    except ValueError as e:
+        log_main.error("Invalid port number: {}".format(sys.argv[1]))
+    return port
+
+
+def exec_path():
+    path = "."
+    try:
+        if len(sys.argv) > 2:
+            path = sys.argv[2]
+    except ValueError as e:
+        log_main.error("Invalid directory name: {}".format(sys.argv[2]))
+    return path
+
 
 # Logging =================================
 
@@ -22,20 +45,20 @@ log_main.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s  %(levelname)-8s %(message)s', '%Y-%m-%d %H:%M:%S')
 
 # Create 'logs' folder if it doesn't exist
-if not os.path.isdir('../logs'):
-    os.makedirs('../logs')
+if not os.path.isdir(exec_path() + '/logs'):
+    os.makedirs(exec_path() + '/logs')
 
 # Backup old log files
-if os.path.isfile("../logs/oldest.log"):
-    os.remove("../logs/oldest.log")
-if os.path.isfile("../logs/older.log"):
-    os.rename("../logs/older.log", "../logs/oldest.log")
-if os.path.isfile("../logs/old.log"):
-    os.rename("../logs/old.log", "../logs/older.log")
-if os.path.isfile("../logs/latest.log"):
-    os.rename("../logs/latest.log", "../logs/old.log")
+if os.path.isfile(exec_path() + '/logs/oldest.log'):
+    os.remove(exec_path() + '/logs/oldest.log')
+if os.path.isfile(exec_path() + '/logs/older.log'):
+    os.rename(exec_path() + '/logs/older.log', exec_path() + '/logs/oldest.log')
+if os.path.isfile(exec_path() + '/logs/old.log'):
+    os.rename(exec_path() + '/logs/old.log', exec_path() + '/logs/older.log')
+if os.path.isfile(exec_path() + '/logs/latest.log'):
+    os.rename(exec_path() + '/logs/latest.log', exec_path() + '/logs/old.log')
 
-file_handler = logging.FileHandler('../logs/latest.log')
+file_handler = logging.FileHandler(exec_path() + '/logs/latest.log')
 file_handler.setFormatter(formatter)
 
 log_main.addHandler(file_handler)
@@ -94,6 +117,14 @@ def get_game_state():
     return response
 
 
+@app.route('/shutdown')
+def shutdown_server():
+    server.stop()
+    thread_fsm.do_run = False
+    thread_fsm.join()
+    sys.exit(0)
+
+
 @app.errorhandler(Exception)
 def all_exception_handler(error):
     log_main.error("Flask exception: {}".format(traceback.format_exc()))
@@ -102,24 +133,14 @@ def all_exception_handler(error):
     return response, 500
 
 
-def parse_port():
-    port = 58989
-    try:
-        port = int(sys.argv[1])
-    except ValueError as e:
-        log_main.error("Invalid port number: {}".format(sys.argv[1]))
-        pass
-    return '{}'.format(port)
-
-
 # States ==================================
 # State: Init =============================
 
 def init_entry(memory, previous_state):
-    if not os.path.isdir('../splits'):
-        os.makedirs('../splits')
+    if not os.path.isdir(exec_path() + '/splits'):
+        os.makedirs(exec_path() + '/splits')
         log_main.info("Created splits folder")
-    offsets = utils.load_ini_file("../offsets." + memory["config"]["config"]["game_version"] + ".ini")
+    offsets = utils.load_ini_file(exec_path() + '/offsets.' + memory["config"]["config"]["game_version"] + '.ini')
     if offsets is None:
         log_main.critical("Offset file not found")
         raise Exception("Offset file not found")
@@ -128,7 +149,10 @@ def init_entry(memory, previous_state):
 
 
 def init_do(memory):
-    return memory["instance_manager"].attach()
+    result = memory["instance_manager"].attach()
+    if not result:
+        time.sleep(0.5)
+    return result
 
 
 def init_exit(memory, next_state):
@@ -184,9 +208,11 @@ def pregame_do(memory):
     memory["song_data"] = SongData(song_info, logger=log_main)
     memory["game_data"] = GameData(logger=log_main)
     memory["split_file"] = \
-        SplitFile(song_info["name"], song_info["speed"], memory["song_data"].get_song_hash(), logger=log_main)
+        SplitFile(song_info["name"], song_info["speed"], memory["song_data"].get_song_hash(),
+                  exec_path=exec_path(), logger=log_main)
     log_main.info("Chart hash: {}".format(memory["song_data"].get_song_hash()))
     log_main.info("Chart sections: {}".format(memory["song_data"].to_dict()["sections"]))
+    log_main.debug("Loaded splits: {}".format(memory["split_file"].splits))
     return True
 
 
@@ -281,9 +307,10 @@ transitions = {(state_init, True): state_menu,
 
 def main_loop(fsm):
     try:
-        forced_exit = False
         log_main.info("Main loop started")
-        while not forced_exit:
+        thread = threading.currentThread()
+        forced_exit = False
+        while getattr(thread, "do_run", True) and not forced_exit:
             forced_exit = fsm.tick()
             time.sleep(0.1)
     except Exception as e:
@@ -295,11 +322,11 @@ def main_loop(fsm):
 
 if __name__ == '__main__':
     # Load config file
-    config = utils.load_ini_file("../config.ini")
+    config = utils.load_ini_file(exec_path() + '/config.ini')
     if config is None:
         log_main.warning("No config file found, generating default config file.")
         utils.generate_default_cfg()
-        config = utils.load_ini_file("../config.ini")
+        config = utils.load_ini_file(exec_path() + '/config.ini')
     log_main.info("Config file loaded")
     if not re.match('\d+(_\d+)*', config["config"]["game_version"]):
         log_main.critical("Invalid config value of game_version")
@@ -318,8 +345,6 @@ if __name__ == '__main__':
     thread_fsm.start()
 
     listening_port = parse_port()
-    app.run(port=listening_port)
-
-    thread_fsm.join()
-
-    sys.exit(0)
+    dispatcher = PathInfoDispatcher({'/': app})
+    server = WSGIServer(('127.0.0.1', listening_port), dispatcher)
+    server.start()
