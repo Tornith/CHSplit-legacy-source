@@ -7,37 +7,43 @@ class InstanceManager(object):
         self.offsets = offset_cfg
         self.instance = None
         self.addresses = None
-        self.base_addresses = None
+        self.preloaded_addresses = None
         self.logger = logger
 
     def attach(self):
         try:
             attempt = Hack("Clone Hero.exe")
+            base_addr = "%x" % attempt.base_address
         except ValueError:
             log(self.logger, "warning", "Couldn't attach to process")
             return False
-        base_addr = "%x" % attempt.base_address
+        except TypeError:
+            log(self.logger, "warning", "Failed to resolve game adresss")
+            return False
         log(self.logger, "info", "Successfully attached to the game process. Base address: {}".format(base_addr))
         self.instance = attempt
         return True
 
-    def load_addresses(self, only_base_address=False):
+    def load_addresses(self, load_preloaded=False):
         name = None
         try:
             addresses = {}
             for name in self.offsets.sections():
-                if only_base_address and self.offsets[name]["offsets"] == "NULL":
-                    addresses[name] = self.get_static_address(name)
-                elif not only_base_address and self.offsets[name]["offsets"] != "NULL":
-                    addresses[name] = self.get_address(name)
+                if (load_preloaded and self.offsets.has_option(name, "preload") and self.offsets[name]["preload"] == "true") \
+                        or not load_preloaded:
+                    if self.offsets[name]["offsets"] == "NULL":
+                        addresses[name] = self.get_static_address(name)
+                    else:
+                        addresses[name] = self.get_address(name)
         except WindowsError:
             log(self.logger, "warning", "Couldn't retrieve address: {}".format(name if name is not None else "Unknown"))
             return False
-        if only_base_address:
-            self.base_addresses = addresses
+        if load_preloaded:
+            self.preloaded_addresses = addresses
         else:
             self.addresses = addresses
         log(self.logger, "info", "Successfully retrieved addresses")
+        log(self.logger, "debug", addresses)
         return True
 
     def get_address(self, name):
@@ -66,23 +72,17 @@ class InstanceManager(object):
                 raise
         return res[1]
 
-    def get_value(self, name, static_address=False):
+    def get_value(self, name, preloaded_address=False):
         funcs = {'i': (int, self.instance.read_int),
                  'd': (float, self.instance.read_double),
                  'b': (int, self.instance.read_char),
                  's': (str, self.instance.read_string)}
         var_type = self.offsets[name]["var_type"]
         if var_type == 's':
-            if not static_address:
-                dictionary = self.addresses
-            else:
-                dictionary = self.base_addresses
+            dictionary = self.preloaded_addresses if preloaded_address else self.addresses
             value = funcs[var_type][1](int(dictionary[name], 16), 1000)[0]
             value = str(value).decode("utf-16", errors="ignore").split("\x00")[0]
         else:
-            if not static_address:
-                dictionary = self.addresses
-            else:
-                dictionary = self.base_addresses
+            dictionary = self.preloaded_addresses if preloaded_address else self.addresses
             value = funcs[var_type][0](funcs[var_type][1](int(dictionary[name], 16))[0])
         return value

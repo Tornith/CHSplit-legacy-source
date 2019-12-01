@@ -1,6 +1,8 @@
 import sys
 import threading
-from flask import Flask, jsonify
+from flask import Flask
+from flask_cors import cross_origin
+from flask_socketio import SocketIO, send
 from cheroot.wsgi import Server as WSGIServer, PathInfoDispatcher
 from finitestatemachine import FSMWithMemory, State
 from instancemanager import InstanceManager
@@ -13,6 +15,7 @@ import time
 import logging
 import re
 import traceback
+import json
 
 
 # Script args =============================
@@ -67,53 +70,58 @@ log_main.addHandler(file_handler)
 # Flask ==================================
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 log_flask = logging.getLogger('werkzeug')
 log_flask.disabled = True
 
 
 @app.route('/api/song')
+@cross_origin()
 def get_song_info():
     # log_main.debug("Call to fetch song info")
     if "song_data" in fsm_main.memory:
-        response = fsm_main.memory["song_data"].to_dict()
+        dictionary = fsm_main.memory["song_data"].to_dict()
     else:
-        response = {}
-    response = jsonify(response)
-    response.headers.add('Access-Control-Allow-Origin', '*')
+        dictionary = {}
+    response = json.dumps(dictionary)
+    # response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 
 @app.route('/api/pb')
+@cross_origin()
 def get_pb_info():
     # log_main.debug("Call to fetch split file info")
     if "split_file" in fsm_main.memory:
         instrument = fsm_main.memory["song_data"].instrument
         difficulty = fsm_main.memory["song_data"].difficulty
-        response = fsm_main.memory["split_file"].get_personal_best(instrument, difficulty)
+        dictionary = fsm_main.memory["split_file"].get_personal_best(instrument, difficulty)
     else:
-        response = {}
-    response = jsonify(response)
-    response.headers.add('Access-Control-Allow-Origin', '*')
+        dictionary = {}
+    response = json.dumps(dictionary)
+    # response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 
 @app.route('/api/game')
+@cross_origin()
 def get_game_info():
     # log_main.debug("Call to fetch game info")
     if "game_data" in fsm_main.memory:
-        response = fsm_main.memory["game_data"].to_dict()
+        dictionary = fsm_main.memory["game_data"].to_dict()
     else:
-        response = {}
-    response = jsonify(response)
-    response.headers.add('Access-Control-Allow-Origin', '*')
+        dictionary = {}
+    response = json.dumps(dictionary)
+    # response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 
 @app.route('/api/state')
+@cross_origin()
 def get_game_state():
     # log_main.debug("Call to fetch the current program state")
-    response = jsonify(fsm_main.current_state.name)
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response = json.dumps(fsm_main.current_state.name)
+    # response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 
@@ -126,10 +134,11 @@ def shutdown_server():
 
 
 @app.errorhandler(Exception)
+@cross_origin()
 def all_exception_handler(error):
     log_main.error("Flask exception: {}".format(traceback.format_exc()))
-    response = jsonify({})
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response = json.dumps({})
+    # response.headers.add('Access-Control-Allow-Origin', '*')
     return response, 500
 
 
@@ -169,7 +178,8 @@ state_init = State("init", on_entry=init_entry, on_exit=init_exit, do=init_do)
 def menu_do(memory):
     in_menu = memory["instance_manager"].get_value("in_menu", True) != 0
     in_game = memory["instance_manager"].get_value("in_game", True) != 0
-    return in_menu, in_game
+    in_practice = memory["instance_manager"].get_value("in_practice", True) != 0
+    return in_menu, in_game, in_practice
 
 
 state_menu = State("menu", do=menu_do)
@@ -234,7 +244,8 @@ def game_do(memory):
     in_menu = memory["instance_manager"].get_value("in_menu", True) == 1
     in_game = memory["instance_manager"].get_value("in_game", True) == 1
     game_unchanged = previous_time <= memory["game_data"].time
-    return in_menu, in_game, game_unchanged
+    in_practice = memory["instance_manager"].get_value("in_practice", True) == 1
+    return in_menu, in_game, game_unchanged, in_practice
 
 
 def game_exit(memory, next_state):
@@ -270,7 +281,8 @@ def ends_entry(memory, previous_state):
 def ends_do(memory):
     in_menu = memory["instance_manager"].get_value("in_menu", True) != 0
     in_game = memory["instance_manager"].get_value("in_game", True) != 0
-    return in_menu, in_game
+    in_practice = memory["instance_manager"].get_value("in_practice", True) != 0
+    return in_menu, in_game, in_practice
 
 
 def ends_exit(memory, next_state):
@@ -288,18 +300,36 @@ def ends_exit(memory, next_state):
 state_endscreen = State("endscreen", on_entry=ends_entry, do=ends_do, on_exit=ends_exit)
 
 
+# State: Practice =========================
+
+def practice_do(memory):
+    in_menu = memory["instance_manager"].get_value("in_menu", True) != 0
+    in_game = memory["instance_manager"].get_value("in_game", True) != 0
+    in_practice = memory["instance_manager"].get_value("in_practice", True) != 0
+    return in_menu, in_game, in_practice
+
+
+state_practice = State("practice", do=practice_do)
+
 # Transitions =============================
 # Loopbacks happen automatically if no matching transition state is found
 
 transitions = {(state_init, True): state_menu,
-               (state_menu, (False, True)): state_pregame,
+               (state_menu, (False, True, False)): state_pregame,
+               (state_menu, (False, True, True)): state_practice,
                (state_pregame, True): state_game,
-               (state_game, (False, False, True)): state_endscreen,
-               (state_game, (True, False, False)): state_menu,
-               (state_game, (True, False, True)): state_menu,
-               (state_game, (False, True, False)): state_pregame,
-               (state_endscreen, (True, False)): state_menu,
-               (state_endscreen, (False, True)): state_pregame}
+               (state_game, (False, False, True, False)): state_endscreen,
+               (state_game, (True, False, False, False)): state_menu,
+               (state_game, (True, False, True, False)): state_menu,
+               (state_game, (False, True, False, False)): state_pregame,
+               (state_game, (False, True, False, True)): state_practice,
+               (state_game, (False, True, True, True)): state_practice,
+               (state_endscreen, (True, False, False)): state_menu,
+               (state_endscreen, (False, True, False)): state_pregame,
+               (state_endscreen, (False, True, True)): state_practice,
+               (state_practice, (False, True, False)): state_pregame,
+               (state_practice, (True, False, False)): state_menu,
+               (state_practice, (True, False, True)): state_menu}
 
 
 # Loop ====================================
@@ -345,6 +375,6 @@ if __name__ == '__main__':
     thread_fsm.start()
 
     listening_port = parse_port()
-    dispatcher = PathInfoDispatcher({'/': app})
+    dispatcher = PathInfoDispatcher({'/': socketio})
     server = WSGIServer(('127.0.0.1', listening_port), dispatcher)
     server.start()

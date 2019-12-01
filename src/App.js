@@ -78,6 +78,8 @@ class App extends Component {
                 case "endscreen":
                     this.setState({forceReload: true});
                     break;
+                case "practice":
+                    break;
                 default:
                     console.error("Unexpected error: Invalid game state (" + this.state.gameState + ")");
                     this.pushNotification("invalid_gamestate", "Unexpected error: Invalid game state: " + this.state.gameState + ".", "error", true);
@@ -90,7 +92,7 @@ class App extends Component {
     };
 
     async fetchData(id){
-        await fetch(apiUri + '/api/' + id, 250).then(response =>
+        await fetch(apiUri + '/api/' + id).then(response =>
             response.json().then(data => {
                 let parsedData = JSON.parse(JSON.stringify(data));
                 this.setState({[id]: parsedData});
@@ -117,13 +119,9 @@ class App extends Component {
         return holder;
     };
 
-    updateSections = () =>{
-        this.fetchData('game').then(() => {
-            const sections = this.loadSections(this.state.song["sections"], this.state.pb, this.state.game["splits"]);
-            this.setState({sections});
-        }).catch((e) => {
+    async updateSections(){
+        await this.fetchData('game').catch((e) => {
             console.error("Unable to retrieve section info");
-            //this.pushNotification("Unexpected error: Unable to retrieve section info.", "error", true);
         });
     };
 
@@ -164,15 +162,6 @@ class App extends Component {
         }
     };
 
-    getRenderState = () => {
-        if (this.state.gameState === "menu") return "menu";
-        if (this.state.sections.length &&
-            this.state.song != null &&
-            this.state.game != null &&
-            this.state.pb != null)
-            return this.state.gameState;
-    };
-
     render() {
         return (
             <React.Fragment>
@@ -186,7 +175,7 @@ class App extends Component {
                     />
                     <Mainbar data={{'song': this.state.song, 'pb': this.state.pb, 'game': this.state.game}}
                              notifications={this.state.notifications}
-                             renderState={this.getRenderState()}
+                             renderState={this.state.gameState}
                              sections={this.state.sections}
                              sidebarOpened={this.state.sidebarOpened}
                              onSidebarDefocus={(this.state.sidebarOpened ? this.handleToggleSidebar : undefined)}
@@ -212,8 +201,7 @@ class App extends Component {
     };
 
     checkUpToDate = async () => {
-        console.log("Checking for new version...");
-        let uri = 'http://chsplit.tornith.cz/version.json';
+        let uri = 'https://chsplit.tornith.cz/version.json';
         let h = new Headers();
         h.append('Accept', 'application/json');
         let req = new Request(uri, {method: "POST", headers: h, mode: "cors"});
@@ -269,7 +257,7 @@ class App extends Component {
 }
 
 const getNewVersion = () => {
-    const newVersionURL = "http://chsplit.tornith.cz/get_version.php?version=newest";
+    const newVersionURL = "https://chsplit.tornith.cz/get_version.php?version=newest";
     open(newVersionURL);
 };
 

@@ -23,7 +23,7 @@
     "electron-pack": "electron-builder build --win portable",
     "preelectron-pack": "yarn build",
     "py-build": "pyinstaller ./pysrc/CHSplit.py -y --onefile --noconsole --name CHSplit --icon ./public/favicon.ico --distpath ./pydist --workpath ./pybuild",
-    "build-app": "yarn py-build && yarn electron-pack"
+    "build-dist": "yarn py-build && yarn electron-pack"
   },
   "main": "public/electron.js",
   "build": {
