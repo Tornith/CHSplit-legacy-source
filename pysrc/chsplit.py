@@ -1,9 +1,9 @@
 import sys
 import threading
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import cross_origin
-from flask_socketio import SocketIO, send
-from cheroot.wsgi import Server as WSGIServer, PathInfoDispatcher
+from flask_socketio import SocketIO
+# from cheroot.wsgi import Server as WSGIServer, PathInfoDispatcher
 from finitestatemachine import FSMWithMemory, State
 from instancemanager import InstanceManager
 from songdata import SongData
@@ -16,6 +16,7 @@ import logging
 import re
 import traceback
 import json
+import random
 
 
 # Script args =============================
@@ -70,64 +71,53 @@ log_main.addHandler(file_handler)
 # Flask ==================================
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+sio = SocketIO(app, cors_allowed_origins="*")
 log_flask = logging.getLogger('werkzeug')
 log_flask.disabled = True
 
 
-@app.route('/api/song')
-@cross_origin()
-def get_song_info():
-    # log_main.debug("Call to fetch song info")
-    if "song_data" in fsm_main.memory:
-        dictionary = fsm_main.memory["song_data"].to_dict()
+def send_data(data, name, event_name=None):
+    if name is None:
+        message = data
+    elif not isinstance(data, list) and not isinstance(name, list):
+        message = {name: data}
+    elif isinstance(data, list) and isinstance(name, list):
+        message = dict(zip(name, data))
     else:
-        dictionary = {}
-    response = json.dumps(dictionary)
-    # response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
+        log_main.error("Invalid data send message: data={}, names={}".format(data, name))
+        return False
+    if event_name is None:
+        event_name = "TRANSFER_DATA"
+    sio.emit(event_name, json.dumps(message), json=True)
+    return True
 
 
-@app.route('/api/pb')
-@cross_origin()
-def get_pb_info():
-    # log_main.debug("Call to fetch split file info")
-    if "split_file" in fsm_main.memory:
-        instrument = fsm_main.memory["song_data"].instrument
-        difficulty = fsm_main.memory["song_data"].difficulty
-        dictionary = fsm_main.memory["split_file"].get_personal_best(instrument, difficulty)
-    else:
-        dictionary = {}
-    response = json.dumps(dictionary)
-    # response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
+@sio.on('connect')
+def handle_handshake():
+    log_main.info("SocketIO connection established")
 
 
-@app.route('/api/game')
-@cross_origin()
-def get_game_info():
-    # log_main.debug("Call to fetch game info")
-    if "game_data" in fsm_main.memory:
-        dictionary = fsm_main.memory["game_data"].to_dict()
-    else:
-        dictionary = {}
-    response = json.dumps(dictionary)
-    # response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
+@sio.on('REQUEST_DATA')
+def request_data(data_id):
+    log_main.info("Manual data request: {}".format(data_id))
+    if data_id == "state":
+        log_main.debug("state: {}".format(fsm_main.current_state.name))
+        send_data(fsm_main.current_state.name, "state", event_name="REQUEST_RESPONSE_STATE")
+    elif data_id == "song":
+        song_data = fsm_main.memory["song_data"].to_dict()
+        pb_data = fsm_main.memory["split_file"].get_personal_best(song_data["instrument"], song_data["difficulty"])
+        log_main.debug("song: {}".format(song_data))
+        log_main.debug("pb: {}".format(pb_data))
+        send_data([song_data, pb_data], ["song", "pb"], event_name="REQUEST_RESPONSE_SONG")
+    elif data_id == "game":
+        game_data = fsm_main.memory["game_data"].to_dict()
+        log_main.debug("game: {}".format(game_data))
+        send_data(game_data, "game", event_name="REQUEST_RESPONSE_GAME")
 
 
-@app.route('/api/state')
-@cross_origin()
-def get_game_state():
-    # log_main.debug("Call to fetch the current program state")
-    response = json.dumps(fsm_main.current_state.name)
-    # response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-
-@app.route('/shutdown')
+@sio.on('SHUTDOWN')
 def shutdown_server():
-    server.stop()
+    sio.stop()
     thread_fsm.do_run = False
     thread_fsm.join()
     sys.exit(0)
@@ -138,7 +128,6 @@ def shutdown_server():
 def all_exception_handler(error):
     log_main.error("Flask exception: {}".format(traceback.format_exc()))
     response = json.dumps({})
-    # response.headers.add('Access-Control-Allow-Origin', '*')
     return response, 500
 
 
@@ -226,26 +215,43 @@ def pregame_do(memory):
     return True
 
 
-state_pregame = State("pregame", do=pregame_do)
+def pregame_exit(memory, next_state):
+    song_data = memory["song_data"].to_dict()
+    pb_data = memory["split_file"].get_personal_best(song_data["instrument"], song_data["difficulty"])
+    send_data([song_data, pb_data], ["song", "pb"])
+
+
+state_pregame = State("pregame", do=pregame_do, on_exit=pregame_exit)
 
 
 # State: Game =============================
+
+def game_entry(memory, previous_state):
+    memory["previous_time"] = -1
+    memory["previous_score"] = -1
 
 
 def game_do(memory):
     # new_addr = memory["instance_manager"].get_address("position")
     # addresses_unchanged = memory["instance_manager"].addresses["position"] == new_addr
-    previous_time = memory["game_data"].time
+    previous_splits_length = len(memory["game_data"].splits)
     try:
         memory["game_data"].get_current_data(memory["instance_manager"], memory["song_data"])
+        if memory["previous_score"] != memory["game_data"].score or previous_splits_length != len(memory["game_data"].splits):
+            game_data = memory["game_data"].to_dict()
+            send_data(game_data, "game", event_name="TRANSFER_GAME_DATA")
     except WindowsError:
         log_main.error("Unexpected pointer change")
-        Exception("Unexpected pointer change")
     in_menu = memory["instance_manager"].get_value("in_menu", True) == 1
     in_game = memory["instance_manager"].get_value("in_game", True) == 1
-    game_unchanged = previous_time <= memory["game_data"].time
     in_practice = memory["instance_manager"].get_value("in_practice", True) == 1
-    return in_menu, in_game, game_unchanged, in_practice
+
+    if memory["previous_time"] > memory["game_data"].time:
+        game_restart(memory)
+        sio.emit("GAME_EVENT", "restart")
+    memory["previous_time"] = memory["game_data"].time
+    memory["previous_score"] = memory["game_data"].score
+    return in_menu, in_game, in_practice
 
 
 def game_exit(memory, next_state):
@@ -261,7 +267,14 @@ def game_exit(memory, next_state):
             del memory["split_file"]
 
 
-state_game = State("game", do=game_do, on_exit=game_exit)
+def game_restart(memory):
+    log_main.info("Game restart")
+    if "game_data" in memory:
+        log_main.info("Clearing game data...")
+        memory["game_data"] = GameData(logger=log_main)
+
+
+state_game = State("game", do=game_do, on_entry=game_entry, on_exit=game_exit)
 
 
 # State: End screen =======================
@@ -311,6 +324,13 @@ def practice_do(memory):
 
 state_practice = State("practice", do=practice_do)
 
+
+# On Every Exit ===========================
+
+def send_state_message(memory, next_state):
+    send_data(next_state.name, "state")
+
+
 # Transitions =============================
 # Loopbacks happen automatically if no matching transition state is found
 
@@ -318,12 +338,9 @@ transitions = {(state_init, True): state_menu,
                (state_menu, (False, True, False)): state_pregame,
                (state_menu, (False, True, True)): state_practice,
                (state_pregame, True): state_game,
-               (state_game, (False, False, True, False)): state_endscreen,
-               (state_game, (True, False, False, False)): state_menu,
-               (state_game, (True, False, True, False)): state_menu,
-               (state_game, (False, True, False, False)): state_pregame,
-               (state_game, (False, True, False, True)): state_practice,
-               (state_game, (False, True, True, True)): state_practice,
+               (state_game, (False, False, False)): state_endscreen,
+               (state_game, (True, False, False)): state_menu,
+               (state_game, (False, True, True)): state_practice,
                (state_endscreen, (True, False, False)): state_menu,
                (state_endscreen, (False, True, False)): state_pregame,
                (state_endscreen, (False, True, True)): state_practice,
@@ -370,11 +387,14 @@ if __name__ == '__main__':
     else:
         log_main.info("DEBUG MODE: false")
 
-    fsm_main = FSMWithMemory(state_init, transitions, memory={"config": config}, logger=log_main)
+    fsm_main = FSMWithMemory(state_init, transitions, memory={"config": config}, logger=log_main,
+                             on_every_exit=send_state_message)
     thread_fsm = threading.Thread(target=main_loop, args=(fsm_main,))
     thread_fsm.start()
 
     listening_port = parse_port()
-    dispatcher = PathInfoDispatcher({'/': socketio})
+    sio.run(app, port=listening_port)
+    '''dispatcher = PathInfoDispatcher({'/': sio})
     server = WSGIServer(('127.0.0.1', listening_port), dispatcher)
-    server.start()
+    server.start()'''
+

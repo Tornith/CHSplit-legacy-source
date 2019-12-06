@@ -11,7 +11,7 @@ class Mainbar extends Component {
                 {this.props.renderState === "game" && this.props.data.song != null && this.props.data.pb != null && this.props.data.game != null &&
                     <React.Fragment>
                         <SongInfo data={this.props.data}/>
-                        <Sections data={this.props.data} sections={this.props.sections}/>
+                        <Sections data={this.props.data} sectionHolder={this.props.sectionHolder}/>
                     </React.Fragment>
                 }
                 {this.props.renderState === "menu" &&
@@ -32,7 +32,7 @@ class Mainbar extends Component {
                 {this.props.renderState === "endscreen" &&
                 <React.Fragment>
                     <SongInfo data={this.props.data}/>
-                    <Sections data={this.props.data} sections={this.props.sections}/>
+                    <Sections data={this.props.data} sectionHolder={this.props.sectionHolder}/>
                 </React.Fragment>
                 }
             </main>

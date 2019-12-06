@@ -8,12 +8,11 @@ class Sections extends Component {
     render() {
         return (
             <div className="panel-sections" id="panel-sections">
-                { this.props.sections.map(section => (
+                { Array.from(this.props.sectionHolder, ([key, value]) => value).map(section => (
                     <Section key={section.time}
                              name={section.name}
-                             time={section.time}
                              active={section.active}
-                             score={section.splitScore}
+                             score={section.sectionScore}
                              pb={section.pbScore}
                              totalScore={this.props.data.game.score}
                              onBecomeActive={this.handleScrollTo}
