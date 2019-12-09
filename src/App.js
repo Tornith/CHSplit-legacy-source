@@ -7,7 +7,6 @@ import fetch from './components/fetchWithTimeout';
 import appInfo from "./appinfo";
 import Notification from "./components/notification";
 import io from 'socket.io-client'
-import OrderedDict from "js-ordered-dict";
 
 let open = window.require("open");
 
@@ -21,9 +20,8 @@ class App extends Component {
         sectionHolder: new Map(),
         activeSection: null,
         song: null,
-        game: null,
+        game: {score: 0, time: 0, activeSection: null, splits: {}},
         pb: null,
-        /*forceReload: false,*/
         notifications: [],
         newUpdate: false,
         socket: null
@@ -55,16 +53,47 @@ class App extends Component {
 
     setupListeners = () => {
         this.state.socket.on('TRANSFER_DATA', (data) => {
-            this.handleTransferredData(data);
+            const parsedData = this.parseTransferredData(data);
+            this.addDataToState(parsedData);
         });
         this.state.socket.on('TRANSFER_SONG_DATA', (data) => {
-            this.handleTransferredData(data);
+            const parsedData = this.parseTransferredData(data);
+            this.addDataToState(parsedData);
             this.setState({sectionHolder: new Map()});
             this.initializeSectionObjects(this.state.song.sections);
         });
         this.state.socket.on('TRANSFER_GAME_DATA', (data) => {
-            this.handleTransferredData(data);
+            const parsedData = this.parseTransferredData(data);
+            const dataGame = this.state.game;
+            dataGame.score = parsedData.score;
+            dataGame.time = parsedData.time;
+            dataGame.activeSection = parsedData.activeSection;
+            dataGame.splits = parsedData.splits;
             this.updateSplitsInfo();
+        });
+        this.state.socket.on('TRANSFER_GAME_DATA[score]', (data) => {
+            const dataGame = this.state.game;
+            dataGame.score = parseInt(data);
+            this.setState({dataGame});
+        });
+        this.state.socket.on('TRANSFER_GAME_DATA[time]', (data) => {
+            const dataGame = this.state.game;
+            dataGame.time = parseFloat(data);
+            this.setState({dataGame});
+        });
+        this.state.socket.on('TRANSFER_GAME_DATA[newSplit]', (data) => {
+            const dataGame = this.state.game;
+            const splitInfo = data.split(":");
+            dataGame.splits[parseInt(splitInfo[0])] = parseInt(splitInfo[1]);
+            this.setState({dataGame});
+        });
+        this.state.socket.on('TRANSFER_GAME_DATA[activeSection]', (data) => {
+            const dataGame = this.state.game;
+            dataGame.activeSection = parseInt(data);
+            this.setState({dataGame});
+        });
+        this.state.socket.on('TRANSFER_STATE_DATA', (data) => {
+            this.setState({gameState: data});
         });
         this.state.socket.on('GAME_EVENT', (event) => {
             this.handleRaisedEvent(event);
@@ -77,10 +106,13 @@ class App extends Component {
             this.setState({ gameState: parsedData.state });
             if (parsedData.state === "game" || gameState.state === "endscreen"){
                 const promiseSong = this.manualRequest("song").then((songData) => {
-                    this.handleTransferredData(songData);
+                    console.log("song data received");
+                    const parsedData = this.parseTransferredData(songData);
+                    this.addDataToState(parsedData);
                 });
                 const promiseGame = this.manualRequest("game").then((gameData) => {
-                    this.handleTransferredData(gameData);
+                    const parsedData = this.parseTransferredData(gameData);
+                    this.addDataToState(parsedData);
                 });
                 Promise.all([promiseSong, promiseGame]).then(() => {
                     this.initializeSectionObjects(this.state.song.sections);
@@ -90,12 +122,14 @@ class App extends Component {
         });
     };
 
-    handleTransferredData = (data) => {
-        let parsedData = JSON.parse(data);
-        console.log(parsedData);
-        for (let key in parsedData){
-            if (parsedData.hasOwnProperty(key))
-                this.setState({[key]: parsedData[key]});
+    parseTransferredData = (data) => {
+        return JSON.parse(data);
+    };
+
+    addDataToState = (data) => {
+        console.log(data);
+        for (let key in data){
+            if (data.hasOwnProperty(key)) this.setState({[key]: data[key]});
         }
     };
 
@@ -156,109 +190,6 @@ class App extends Component {
         sectionHolder.get(game.activeSection).sectionScore = game.score;
         this.setState(sectionHolder)
     };
-
-    /*componentWillUnmount() {
-        clearInterval(this.timerGameState);
-    }
-
-    doAppTick = () => {
-        this.getGameState().then(() => {
-            switch (this.state.gameState) {
-                case "init":
-                    break;
-                case "menu":
-                    this.resetGameData();
-                    break;
-                case "pregame":
-                    break;
-                case "game":
-                    if (!this.state.sections.length || this.state.forceReload){
-                        const fetchSong = this.fetchData('song');
-                        const fetchPB = this.fetchData('pb');
-                        const fetchGame = this.fetchData('game');
-                        Promise.all([fetchSong, fetchPB, fetchGame]).then(() => {
-                            const sections = this.loadSections(this.state.song["sections"], this.state.pb, this.state.game["splits"]);
-                            this.setState({sections});
-                            this.setState({forceReload: false});
-                        });
-                    }
-                    else{
-                        this.updateSections()
-                    }
-                    break;
-                case "endscreen":
-                    this.setState({forceReload: true});
-                    break;
-                case "practice":
-                    break;
-                default:
-                    console.error("Unexpected error: Invalid game state (" + this.state.gameState + ")");
-                    this.pushNotification("invalid_gamestate", "Unexpected error: Invalid game state: " + this.state.gameState + ".", "error", true);
-            }
-        }).catch((e) => {
-            console.error("Unable to retrieve game state " + e);
-            //this.pushNotification("Unexpected error: Unable to retrieve game state.", "error", true);
-            this.setState({gameState: "init"});
-        });
-    };
-
-    async fetchData(id){
-        await fetch(apiUri + '/api/' + id).then(response =>
-            response.json().then(data => {
-                let parsedData = JSON.parse(JSON.stringify(data));
-                this.setState({[id]: parsedData});
-            })
-        ).catch((e) => {
-            console.error("Request timeout: couldn't fetch " + id + " data " + e);
-            //this.pushNotification("Request timeout: couldn't fetch " + id + " data.", "error", true);
-        });
-    }
-
-    loadSections = (sections, pbSplits, curSplits) => {
-        let holder = [];
-        if (sections.length > 0){
-            sections.forEach((section) => {
-                holder.push({
-                    name: section[1],
-                    time: section[0],
-                    active: (parseInt(section[0]) === this.state.game.activeSection),
-                    splitScore: ((section[0] in curSplits) ? curSplits[section[0]] : undefined),
-                    pbScore: (pbSplits != null) ? pbSplits[section[0]] : null
-                });
-            });
-        }
-        return holder;
-    };
-
-    async updateSections(){
-        await this.fetchData('game').catch((e) => {
-            console.error("Unable to retrieve section info");
-        });
-    };
-
-    async getGameState(){
-        await fetch(apiUri + '/api/state').then(response =>
-            response.json().then(data => {
-                this.setState({gameState: data})
-            })
-        ).catch((e) => {
-            console.error("Request timeout: Couldn't fetch game state data " + e);
-            //this.pushNotification("Request timeout: Couldn't fetch game state data.", "error", true);
-        });
-    };
-
-    resetGameData = () => {
-        console.log("Resetting game data...");
-        const defaultState = {
-            sections: [],
-            song: null,
-            game: null,
-            pb: null
-        };
-        this.setState({sections: defaultState["sections"], song: defaultState["song"], game: defaultState["song"], pb: defaultState["pb"]});
-    };*/
-
-
 
     handleToggleSidebar = () => {
         const sidebarOpened = !this.state.sidebarOpened;

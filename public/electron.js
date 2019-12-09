@@ -3,13 +3,12 @@ const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const menu = electron.Menu;
 const globalShortcut = electron.globalShortcut;
-const screen = electron.screen;
 
 const path = require('path');
-const url = require('url');
 const psTree = require('ps-tree');
 const isDev = require('electron-is-dev');
 const rq = require('request-promise');
+const unhandled = require('electron-unhandled');
 
 const portable_path = process.env.PORTABLE_EXECUTABLE_DIR;
 const exec_path = (portable_path === undefined) ? path.join(__dirname, '../') : portable_path;
@@ -91,9 +90,6 @@ const killProcesses = (process) => {
     });
 };
 
-app.on('ready', createPyProc);
-app.on('before-quit', exitPyProc);
-
 /*************************************************************
  * window management
  *************************************************************/
@@ -109,6 +105,7 @@ function createWindow() {
 }
 
 app.on('ready', () =>{
+    createPyProc();
     createWindow();
     menu.setApplicationMenu(null);
     globalShortcut.register("CmdOrCtrl + Shift + I", () => {mainWindow.webContents.openDevTools()})
@@ -125,3 +122,10 @@ app.on('activate', () => {
         createWindow();
     }
 });
+
+app.on('before-quit', () =>{
+    console.log("I got here");
+    exitPyProc();
+});
+
+unhandled();

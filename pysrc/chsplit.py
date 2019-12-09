@@ -76,7 +76,7 @@ log_flask = logging.getLogger('werkzeug')
 log_flask.disabled = True
 
 
-def send_data(data, name, event_name=None):
+def send_data(data, name, event_name):
     if name is None:
         message = data
     elif not isinstance(data, list) and not isinstance(name, list):
@@ -86,10 +86,14 @@ def send_data(data, name, event_name=None):
     else:
         log_main.error("Invalid data send message: data={}, names={}".format(data, name))
         return False
-    if event_name is None:
-        event_name = "TRANSFER_DATA"
     sio.emit(event_name, json.dumps(message), json=True)
     return True
+
+
+def send_single(data, event_name, jsonify=False):
+    if jsonify:
+        data = json.dumps(data)
+    sio.emit(event_name, data, json=jsonify)
 
 
 @sio.on('connect')
@@ -102,17 +106,17 @@ def request_data(data_id):
     log_main.info("Manual data request: {}".format(data_id))
     if data_id == "state":
         log_main.debug("state: {}".format(fsm_main.current_state.name))
-        send_data(fsm_main.current_state.name, "state", event_name="REQUEST_RESPONSE_STATE")
+        send_data(fsm_main.current_state.name, "state", "REQUEST_RESPONSE_STATE")
     elif data_id == "song":
         song_data = fsm_main.memory["song_data"].to_dict()
         pb_data = fsm_main.memory["split_file"].get_personal_best(song_data["instrument"], song_data["difficulty"])
         log_main.debug("song: {}".format(song_data))
         log_main.debug("pb: {}".format(pb_data))
-        send_data([song_data, pb_data], ["song", "pb"], event_name="REQUEST_RESPONSE_SONG")
+        send_data([song_data, pb_data], ["song", "pb"], "REQUEST_RESPONSE_SONG")
     elif data_id == "game":
         game_data = fsm_main.memory["game_data"].to_dict()
         log_main.debug("game: {}".format(game_data))
-        send_data(game_data, "game", event_name="REQUEST_RESPONSE_GAME")
+        send_data(game_data, "game", "REQUEST_RESPONSE_GAME")
 
 
 @sio.on('SHUTDOWN')
@@ -218,7 +222,7 @@ def pregame_do(memory):
 def pregame_exit(memory, next_state):
     song_data = memory["song_data"].to_dict()
     pb_data = memory["split_file"].get_personal_best(song_data["instrument"], song_data["difficulty"])
-    send_data([song_data, pb_data], ["song", "pb"])
+    send_data([song_data, pb_data], ["song", "pb"], "TRANSFER_SONG_DATA")
 
 
 state_pregame = State("pregame", do=pregame_do, on_exit=pregame_exit)
@@ -227,30 +231,38 @@ state_pregame = State("pregame", do=pregame_do, on_exit=pregame_exit)
 # State: Game =============================
 
 def game_entry(memory, previous_state):
-    memory["previous_time"] = -1
-    memory["previous_score"] = -1
+    memory["prev_game_data"] = {
+        "score": -1,
+        "time": -1,
+        "splits_len": -1,
+        "active_section": None
+    }
 
 
 def game_do(memory):
     # new_addr = memory["instance_manager"].get_address("position")
     # addresses_unchanged = memory["instance_manager"].addresses["position"] == new_addr
-    previous_splits_length = len(memory["game_data"].splits)
     try:
         memory["game_data"].get_current_data(memory["instance_manager"], memory["song_data"])
-        if memory["previous_score"] != memory["game_data"].score or previous_splits_length != len(memory["game_data"].splits):
-            game_data = memory["game_data"].to_dict()
-            send_data(game_data, "game", event_name="TRANSFER_GAME_DATA")
+        # if memory["previous_score"] != memory["game_data"].score or previous_splits_length != len(memory["game_data"].splits):
+        #     game_data = memory["game_data"].to_dict()
+        #     send_data(game_data, "game", "TRANSFER_GAME_DATA")
     except WindowsError:
         log_main.error("Unexpected pointer change")
+
+    send_game_changes(memory["prev_game_data"], memory["game_data"])
+
     in_menu = memory["instance_manager"].get_value("in_menu", True) == 1
     in_game = memory["instance_manager"].get_value("in_game", True) == 1
     in_practice = memory["instance_manager"].get_value("in_practice", True) == 1
 
-    if memory["previous_time"] > memory["game_data"].time:
+    if memory["prev_game_data"]["time"] > memory["game_data"].time and memory["game_data"].time < 0:
         game_restart(memory)
         sio.emit("GAME_EVENT", "restart")
-    memory["previous_time"] = memory["game_data"].time
-    memory["previous_score"] = memory["game_data"].score
+    memory["prev_game_data"]["time"] = memory["game_data"].time
+    memory["prev_game_data"]["score"] = memory["game_data"].score
+    memory["prev_game_data"]["splits_len"] = len(memory["game_data"].splits)
+    memory["prev_game_data"]["active_section"] = memory["game_data"].activeSection
     return in_menu, in_game, in_practice
 
 
@@ -272,6 +284,17 @@ def game_restart(memory):
     if "game_data" in memory:
         log_main.info("Clearing game data...")
         memory["game_data"] = GameData(logger=log_main)
+
+
+def send_game_changes(prev, cur):
+    if prev["score"] != cur.score:
+        send_single(cur.score, "TRANSFER_GAME_DATA[score]")
+    if int(prev["time"]) < int(cur.time):
+        send_single(cur.time, "TRANSFER_GAME_DATA[time]")
+    if prev["active_section"] is not None and prev["splits_len"] < len(cur.splits):
+        send_single("{}:{}".format(prev["active_section"], cur.splits[prev["active_section"]]), "TRANSFER_GAME_DATA[newSplit]")
+    if prev["active_section"] is not None and prev["active_section"] < cur.activeSection:
+        send_single(cur.activeSection, "TRANSFER_GAME_DATA[activeSection]")
 
 
 state_game = State("game", do=game_do, on_entry=game_entry, on_exit=game_exit)
@@ -328,7 +351,7 @@ state_practice = State("practice", do=practice_do)
 # On Every Exit ===========================
 
 def send_state_message(memory, next_state):
-    send_data(next_state.name, "state")
+    send_single(next_state.name, "TRANSFER_STATE_DATA")
 
 
 # Transitions =============================

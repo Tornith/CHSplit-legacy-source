@@ -1,17 +1,15 @@
 {
   "name": "chsplit",
   "author": "Tornith",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "CHSplit",
   "private": true,
   "dependencies": {
     "electron-is-dev": "^1.1.0",
-    "js-ordered-dict": "^2.3.0",
     "open": "^7.0.0",
     "ps-tree": "^1.2.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "react-native": "^0.61.4",
     "react-scripts": "3.2.0",
     "request-promise": "^4.2.5",
     "socket.io": "^2.3.0",
@@ -68,6 +66,7 @@
     "concurrently": "^5.0.0",
     "electron": "^7.1.1",
     "electron-builder": "^21.2.0",
+    "electron-unhandled": "latest",
     "electron-react-devtools": "^0.5.3",
     "wait-on": "^3.3.0"
   }
