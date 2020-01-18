@@ -6,9 +6,6 @@ import MenuItem from "./menuitem";
 import appInfo from '../appinfo.json';
 
 class Sidebar extends PureComponent {
-    static whyDidYouRender = {
-        logOnDifferentValues: true
-};
     render() {
         return (
             <aside className={this.getOpened(this.props.opened)}>

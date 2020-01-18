@@ -10,11 +10,11 @@ const isDev = require('electron-is-dev');
 const url = require('url');
 const rq = require('request-promise');
 const unhandled = require('electron-unhandled');
+const fs = require('fs');
+const yaml = require('js-yaml');
 
 const portable_path = process.env.PORTABLE_EXECUTABLE_DIR;
 const exec_path = (portable_path === undefined) ? path.join(__dirname, '../') : portable_path;
-
-//fmkadmapgofadopljbjfkapdkoienihi
 
 /*************************************************************
  * py process
@@ -48,12 +48,12 @@ const selectPort = () => {
     return pyPort;
 };
 
-const createPyProc = () => {
+const createPyProc = (config) => {
     let script = getScriptPath();
     let port = '' + selectPort();
-
+    const config_str = JSON.stringify(config);
     if (guessPackaged()) {
-        pyProc = require('child_process').execFile(script, [port, exec_path], function(err, stdout, stderr) {
+        pyProc = require('child_process').execFile(script, [exec_path, port, config_str], function(err, stdout, stderr) {
             console.log(stdout);
         });
         console.log("packaged");
@@ -61,12 +61,11 @@ const createPyProc = () => {
             console.log("exitiing child rpcoes");
         })
     } else {
-        pyProc = require('child_process').spawn('python', [script, port, exec_path]);
+        pyProc = require('child_process').spawn('python', [script, exec_path, port, config_str]);
         console.log("not packaged")
     }
 
     if (pyProc != null) {
-        //console.log(pyProc);
         pyProc.stdout.on('data', function(data) {
             console.log(data.toString());
         });
@@ -111,8 +110,55 @@ function createWindow() {
     mainWindow.on('closed', () => mainWindow = null);
 }
 
+function loadConfig(){
+    const defaultPreferences = yaml.safeLoad(fs.readFileSync(path.join(__dirname, "..", "src", "defaultConfig.yml"), 'utf8')).config;
+    const configPath = path.join(__dirname, "..", "config.yml");
+    if (fs.existsSync(configPath)){
+        try{
+            let yml = yaml.safeLoad(fs.readFileSync(configPath, 'utf8'));
+            if (yml === undefined){
+                writeConfigFile(defaultPreferences, configPath);
+                return defaultPreferences;
+            }
+            else {
+                verifyConfigIntegrity(yml.config, defaultPreferences, configPath);
+                return yml.config;
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    } else {
+        writeConfigFile(defaultPreferences, configPath);
+        return defaultPreferences;
+    }
+}
+
+function verifyConfigIntegrity(config, defaultConfig, configPath){
+    Object.entries(defaultConfig).forEach(([key, value]) => {
+        if(!(key in config)){
+            config[key] = value;
+        }
+    });
+    writeConfigFile(config, configPath);
+}
+
+function writeConfigFile(config, path){
+    const str = yaml.safeDump({config: config});
+    fs.writeFileSync(path, str, (err) => {
+        if(err){
+            console.error(err);
+        }
+    });
+}
+
+function saveConfig(){
+    writeConfigFile(config, path.join(__dirname, "..", "config.yml"));
+}
+
 app.on('ready', () =>{
-    createPyProc();
+    global.config = loadConfig();
+    global.saveConfig = saveConfig;
+    createPyProc(config);
     createWindow();
     menu.setApplicationMenu(null);
     globalShortcut.register("CmdOrCtrl + Shift + I", () => {mainWindow.webContents.openDevTools()});

@@ -2,6 +2,7 @@ import mido
 import mido.messages.checks
 import re
 import configparser
+from yaml import Loader, Dumper, load, dump
 
 
 # Sorry but there's no other way... Some original GH songs have corrupted MIDIs?
@@ -62,6 +63,14 @@ def load_ini_file(name):
     config = configparser.ConfigParser()
     config.read(name)
     return config if config.sections() else None
+
+
+def load_yaml_file(name):
+    try:
+        with open(name) as yaml_file:
+            return load(yaml_file, Loader=Loader)
+    except IOError:
+        return None
 
 
 def reverse_insort(a, x, lo=0, hi=None):

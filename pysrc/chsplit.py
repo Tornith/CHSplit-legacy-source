@@ -14,33 +14,30 @@ import time
 import logging
 import re
 import json
+import argparse
 
 # Gevent monkey patch =====================
 
 monkey.patch_all()
 
 
-# Script args =============================
+# Parsing arguments =======================
 
-def parse_port():
-    port = 58989
+def json_str(v):
+    if isinstance(v, dict):
+        return v
     try:
-        if len(sys.argv) > 1:
-            port = int(sys.argv[1])
-    except ValueError as e:
-        log_main.error("Invalid port number: {}".format(sys.argv[1]))
-    return port
+        return json.loads(v)
+    except ValueError:
+        print "Invalid config file:"
+        raise argparse.ArgumentTypeError('JSON string expected.')
 
 
-def exec_path():
-    path = "."
-    try:
-        if len(sys.argv) > 2:
-            path = sys.argv[2]
-    except ValueError as e:
-        log_main.error("Invalid directory name: {}".format(sys.argv[2]))
-    return path
-
+parser = argparse.ArgumentParser(prog="chsplit", description="The CHSplit backend")
+parser.add_argument("path", type=str, help="the CHSplit executable path")
+parser.add_argument("port", type=int, help="the port to run the backend API at")
+parser.add_argument("config", type=json_str, help="the config in JSON format")
+args = parser.parse_args()
 
 # Logging =================================
 
@@ -50,20 +47,20 @@ log_main.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s  %(levelname)-8s %(message)s')
 
 # Create 'logs' folder if it doesn't exist
-if not os.path.isdir(exec_path() + '/logs'):
-    os.makedirs(exec_path() + '/logs')
+if not os.path.isdir(args.path + '/logs'):
+    os.makedirs(args.path + '/logs')
 
 # Backup old log files
-if os.path.isfile(exec_path() + '/logs/oldest.log'):
-    os.remove(exec_path() + '/logs/oldest.log')
-if os.path.isfile(exec_path() + '/logs/older.log'):
-    os.rename(exec_path() + '/logs/older.log', exec_path() + '/logs/oldest.log')
-if os.path.isfile(exec_path() + '/logs/old.log'):
-    os.rename(exec_path() + '/logs/old.log', exec_path() + '/logs/older.log')
-if os.path.isfile(exec_path() + '/logs/latest.log'):
-    os.rename(exec_path() + '/logs/latest.log', exec_path() + '/logs/old.log')
+if os.path.isfile(args.path + '/logs/oldest.log'):
+    os.remove(args.path + '/logs/oldest.log')
+if os.path.isfile(args.path + '/logs/older.log'):
+    os.rename(args.path + '/logs/older.log', args.path + '/logs/oldest.log')
+if os.path.isfile(args.path + '/logs/old.log'):
+    os.rename(args.path + '/logs/old.log', args.path + '/logs/older.log')
+if os.path.isfile(args.path + '/logs/latest.log'):
+    os.rename(args.path + '/logs/latest.log', args.path + '/logs/old.log')
 
-file_handler = logging.FileHandler(exec_path() + '/logs/latest.log')
+file_handler = logging.FileHandler(args.path + '/logs/latest.log')
 file_handler.setFormatter(formatter)
 
 log_main.addHandler(file_handler)
@@ -143,10 +140,11 @@ def disconnect(sid):
 # State: Init =============================
 
 def init_entry(memory, previous_state):
-    if not os.path.isdir(exec_path() + '/splits'):
-        os.makedirs(exec_path() + '/splits')
+    if not os.path.isdir(args.path + '/splits'):
+        os.makedirs(args.path + '/splits')
         log_main.info("Created splits folder")
-    offsets = utils.load_ini_file(exec_path() + '/offsets.' + memory["config"]["config"]["game_version"] + '.ini')
+    # offsets = utils.load_ini_file(args.path + '/offsets.' + memory["config"]["config"]["game_version"] + '.ini')
+    offsets = utils.load_yaml_file(args.path + '/offsets.' + memory["config"]["selectedGameVersion"] + '.yml')
     if offsets is None:
         log_main.critical("Offset file not found")
         raise Exception("Offset file not found")
@@ -213,7 +211,7 @@ def pregame_do(memory):
     memory["game_data"] = GameData(logger=log_main)
     memory["split_file"] = \
         SplitFile(song_info["name"], song_info["speed"], memory["song_data"].get_song_hash(),
-                  exec_path=exec_path(), logger=log_main)
+                  exec_path=args.path, logger=log_main)
     log_main.info("Chart hash: {}".format(memory["song_data"].get_song_hash()))
     log_main.info("Chart sections: {}".format(memory["song_data"].to_dict()["sections"]))
     log_main.debug("Loaded splits: {}".format(memory["split_file"].splits))
@@ -392,18 +390,10 @@ def main_loop(fsm):
 # Main ====================================
 
 if __name__ == '__main__':
-    # Load config file
-    config = utils.load_ini_file(exec_path() + '/config.ini')
-    if config is None:
-        log_main.warning("No config file found, generating default config file.")
-        utils.generate_default_cfg()
-        config = utils.load_ini_file(exec_path() + '/config.ini')
-    log_main.info("Config file loaded")
-    if not re.match('\d+(_\d+)*', config["config"]["game_version"]):
-        log_main.critical("Invalid config value of game_version")
-        raise ValueError("Invalid config value of game_version")
-    debug_mode = config["config"]["debug_mode"] == "true"
-    if debug_mode:
+    if not re.match('\d+(_\d+)*', args.config["selectedGameVersion"]):
+        log_main.critical("Invalid config value of selectedGameVersion")
+        raise ValueError("Invalid config value of selectedGameVersion")
+    if args.config["debugMode"]:
         log_main.setLevel(logging.DEBUG)
         log_main.addHandler(logging.StreamHandler(sys.stdout))
         # log_flask.disabled = False
@@ -411,12 +401,11 @@ if __name__ == '__main__':
     else:
         log_main.info("DEBUG MODE: false")
 
-    fsm_main = FSMWithMemory(state_init, transitions, memory={"config": config}, logger=log_main,
+    fsm_main = FSMWithMemory(state_init, transitions, memory={"config": args.config}, logger=log_main,
                              on_every_exit=send_state_message)
     thread_fsm = threading.Thread(target=main_loop, args=(fsm_main,))
     thread_fsm.start()
 
-    listening_port = parse_port()
-    wsgi_server = pywsgi.WSGIServer(('127.0.0.1', listening_port), app, handler_class=WebSocketHandler)
+    wsgi_server = pywsgi.WSGIServer(('127.0.0.1', args.port), app, handler_class=WebSocketHandler)
     wsgi_server.serve_forever()
     # app.run(threaded=True, host='127.0.0.1', port=listening_port)

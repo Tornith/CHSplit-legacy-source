@@ -6,7 +6,7 @@ import Submenu from "./components/submenu";
 import fetch from './components/fetchWithTimeout';
 import appInfo from "./appinfo";
 import Notification from "./components/notification";
-import io from 'socket.io-client'
+import io from 'socket.io-client';
 
 let open = window.require("open");
 if (process.env.NODE_ENV !== 'production') {
@@ -17,28 +17,23 @@ if (process.env.NODE_ENV !== 'production') {
 const socketURL = "http://127.0.0.1:58989";
 
 class App extends Component {
-    state = {
-        sidebarOpened: false,
-        submenuOpenedType: null,
-        gameState: null,
-        sectionHolder: new Map(),
-        song: null,
-        game: {score: 0, time: -1, activeSection: undefined, splits: {}},
-        pb: null,
-        notifications: [],
-        newUpdate: false,
-        socket: null,
-        preferences: {
-            selectedVersion: "23_2_2",
-            alwaysOnTop: false,
-            showSingleSection: false,
-            showActiveSectionDifference: false,
-            showSongProgressBar: true,
-            showAnimations: true,
-            enableAutoscroll: true,
-            styleChosen: "defaultLight"
-        }
-    };
+    constructor(props){
+        super(props);
+        const preferences = this.loadConfigFile();
+        this.state = {
+            sidebarOpened: false,
+            submenuOpenedType: null,
+            gameState: null,
+            sectionHolder: new Map(),
+            song: null,
+            game: {score: 0, time: -1, activeSection: undefined, splits: {}},
+            pb: null,
+            notifications: [],
+            newUpdate: false,
+            socket: null,
+            preferences: preferences
+        };
+    }
 
     componentDidMount() {
         this.checkUpToDate().then(() => {
@@ -275,12 +270,18 @@ class App extends Component {
         this.setState({notifications: filtered});
     };
 
+    loadConfigFile = () => {
+        return window.require("electron").remote.getGlobal('config');
+    };
+
     updatePreference = (id, val) =>{
         this.setState(prevState => ({
             preferences: {...prevState.preferences,
                 [id]: val
             }
         }));
+        window.require("electron").remote.getGlobal('config')[id] = val;
+        window.require("electron").remote.getGlobal('saveConfig')();
     };
 
     checkUpToDate = async () => {

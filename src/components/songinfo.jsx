@@ -1,7 +1,6 @@
 import React, {PureComponent} from 'react';
 
 class SongInfo extends PureComponent {
-    static whyDidYouRender = true;
     render() {
         return (
             <React.Fragment>

@@ -1,0 +1,10 @@
+config:
+  debugMode: false
+  selectedGameVersion: '23_2_2'
+  alwaysOnTop: false
+  showSingleSection: false
+  showActiveSectionDifference: false
+  showSongProgressBar: true
+  showAnimations: true
+  enableAutoscroll: true
+  styleChosen: defaultLight

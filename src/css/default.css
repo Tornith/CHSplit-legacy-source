@@ -321,7 +321,7 @@ aside.opened .sidebar-menu{
     right: calc(0px - (100vw - var(--sidebar-width-opened)));
     bottom: 0;
     z-index: 3;
-    transition: var(--sidebar-opening-transition);
+    transition: right var(--sidebar-opening-transition);
 }
 
 .submenu-wrapper.opened{
@@ -336,7 +336,7 @@ aside.opened .sidebar-menu{
     position: absolute;
     opacity: 0;
     right: -100%;
-    transition: var(--sidebar-opening-transition);
+    transition: right var(--sidebar-opening-transition);
 }
 
 .submenu-wrapper .submenu-content.opened{
@@ -697,18 +697,21 @@ main.sidebarOpened::after{
 .input-wrapper.outer{ margin: 1.5em 0; }
 .input-wrapper.single{ margin: 1em 0; }
 
+.input-wrapper.list-sync .input-inner{ display: flex; align-items: flex-end; }
+
 .input-checkbox, .input-radio{
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 25px;
-    height: 25px;
+    width: 22px;
+    height: 22px;
     background-color: #fff;
     border: 2px solid #ddd;
     transition: border-color 0.05s, background-color 0.15s;
-    cursor: pointer;
+    /*cursor: pointer;*/
     border-radius: 2px;
     margin-right: 0.5em;
+    flex-shrink: 0;
 }
 
 .input-radio{
@@ -725,8 +728,8 @@ main.sidebarOpened::after{
 }
 
 .input-checkbox > img, .input-radio > img{
-    width: 15px;
-    height: 15px;
+    width: 12px;
+    height: 12px;
     pointer-events: none;
     user-select: none;
     opacity: 0;
@@ -745,12 +748,13 @@ main.sidebarOpened::after{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.33em 0.5em;
+    padding: 0 0.5em;
     background-color: #fff;
     border: 2px solid #ddd;
     color: #000;
-    cursor: pointer;
+    /*cursor: pointer;*/
     width: 100px;
+    height: 2em;
 }
 
 .input-list-selected img{
@@ -772,18 +776,18 @@ main.sidebarOpened::after{
     border: 2px solid #ddd;
     width: 100%;
     position: absolute;
-    transition: height 0.1s, opacity 0.1s;
+    transition: height 0.075s, opacity 0.075s;
 }
 .input-list-dropdown.hidden{
     pointer-events: none;
     user-select: none;
     opacity: 0;
-    height: 0px;
+    height: 0;
 }
 .input-list-option{
     color: #000;
     padding: 0.33em 0.5em;
-    cursor: pointer;
+    /*cursor: pointer;*/
     transition: background-color 0.05s;
     width: 100%;
 }
@@ -792,6 +796,14 @@ main.sidebarOpened::after{
 }
 .input-list-option:hover{
     background-color: #80c4ff;
+}
+.input-list-refresh{
+    height: calc(2em + 2px);
+    width: calc(2em + 2px);
+}
+.input-list-refresh > img{
+    width: 100%;
+    height: auto;
 }
 .submenu-subcontent > .input-wrapper:first-child{
     margin-top: 0;
