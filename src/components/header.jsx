@@ -1,10 +1,10 @@
-import React, {Component} from 'react';
+import React, {PureComponent} from 'react';
 import iconClose from '../svg/window-close.svg';
 import iconMaximize from '../svg/window-maximize.svg';
 import iconMinimize from '../svg/window-minimize.svg';
 const { remote } = window.require('electron');
 
-class Header extends Component {
+class Header extends PureComponent {
     render() {
         return (
             <header id="header">
@@ -24,5 +24,4 @@ class Header extends Component {
         );
     }
 }
-
 export default Header;

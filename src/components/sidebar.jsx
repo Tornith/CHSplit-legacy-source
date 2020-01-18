@@ -1,11 +1,14 @@
-import React, {Component} from 'react';
+import React, {PureComponent} from 'react';
 import iconMenu from '../svg/icon-menu.svg';
 import iconOptions from '../svg/icon-options.svg';
 import iconAbout from '../svg/icon-about.svg';
 import MenuItem from "./menuitem";
 import appInfo from '../appinfo.json';
 
-class Sidebar extends Component {
+class Sidebar extends PureComponent {
+    static whyDidYouRender = {
+        logOnDifferentValues: true
+};
     render() {
         return (
             <aside className={this.getOpened(this.props.opened)}>

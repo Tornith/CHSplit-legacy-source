@@ -14,8 +14,8 @@ class SongData(object):
         self.instrument = song_info["instrument"]
         self.difficulty = song_info["difficulty"]
         self.modifiers = song_info["modifiers"]
-        self.sections = self.get_sections()
         self.logger = logger
+        self.sections = self.get_sections()
 
     def __str__(self):
         return {"song": self.to_dict()}

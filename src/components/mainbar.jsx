@@ -8,10 +8,10 @@ class Mainbar extends Component {
         return (
             <main className={this.getOpened(this.props.sidebarOpened)} onClick={this.props.onSidebarDefocus}>
                 <NotificationBar notifications={this.props.notifications}/>
-                {this.props.renderState === "game" && this.props.data.song != null && this.props.data.pb != null && this.props.data.game != null &&
+                {this.props.renderState === "game" && this.props.song != null && this.props.game != null &&
                     <React.Fragment>
-                        <SongInfo data={this.props.data}/>
-                        <Sections data={this.props.data} sectionHolder={this.props.sectionHolder}/>
+                        <SongInfo song={this.props.song} game={this.props.game} />
+                        <Sections game={this.props.game} sectionHolder={this.props.sectionHolder}/>
                     </React.Fragment>
                 }
                 {this.props.renderState === "menu" &&
@@ -31,8 +31,8 @@ class Mainbar extends Component {
                 }
                 {this.props.renderState === "endscreen" &&
                 <React.Fragment>
-                    <SongInfo data={this.props.data}/>
-                    <Sections data={this.props.data} sectionHolder={this.props.sectionHolder}/>
+                    <SongInfo song={this.props.song} game={this.props.game} />
+                    <Sections game={this.props.game} sectionHolder={this.props.sectionHolder}/>
                 </React.Fragment>
                 }
             </main>

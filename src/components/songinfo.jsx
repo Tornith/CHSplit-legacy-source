@@ -1,23 +1,24 @@
-import React, {Component} from 'react';
+import React, {PureComponent} from 'react';
 
-class SongInfo extends Component {
+class SongInfo extends PureComponent {
+    static whyDidYouRender = true;
     render() {
         return (
             <React.Fragment>
                 <div className="panel-song" id="panel-song">
                     <div className="panel-info">
-                        <span className="song-name">{this.props.data.song.name + this.formatSpeed(this.props.data.song.speed) + this.formatDifficulty(this.props.data.song.difficulty) + this.formatInstrument(this.props.data.song.instrument) + this.formatModifiersString(this.props.data.song.modifiers)}</span>
+                        <span className="song-name">{this.props.song.name + this.formatSpeed(this.props.song.speed) + this.formatDifficulty(this.props.song.difficulty) + this.formatInstrument(this.props.song.instrument) + this.formatModifiersString(this.props.song.modifiers)}</span>
                         <div className="spt"/>
                     </div>
                     <div className="panel-score">
-                        <span className="total-score">{this.formatNumbers(this.props.data.game.score)}</span>
-                        <span className={"total-score-difference " + ((this.props.data.game.score >= 0) ? "positive" : "negative")}>{this.formatNumbers(this.props.data.game.score, true)}</span>
+                        <span className="total-score">{this.formatNumbers(this.props.game.score)}</span>
+                        <span className={"total-score-difference " + ((this.props.game.score >= 0) ? "positive" : "negative")}>{this.formatNumbers(this.props.game.score, true)}</span>
                     </div>
                 </div>
                 <div className="panel-progress" id="panel-progress">
-                    <span className="song-time">{this.formatTime(this.props.data.game.time) + " / " + this.formatTime(this.props.data.song.length)}</span>
+                    <span className="song-time">{this.formatTime(this.props.game.time) + " / " + this.formatTime(this.props.song.length)}</span>
                     <div className="song-progress-bar-wrapper">
-                        <div className="song-progress-bar" style={{width: (100 * (this.props.data.game.time > 0 ? this.props.data.game.time : 0) / this.props.data.song.length) + "%"}}>
+                        <div className="song-progress-bar" style={{width: (100 * (this.props.game.time > 0 ? this.props.game.time : 0) / this.props.song.length) + "%"}}>
                             <div className="stripes"/>
                         </div>
                     </div>

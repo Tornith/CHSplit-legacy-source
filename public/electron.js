@@ -7,12 +7,14 @@ const globalShortcut = electron.globalShortcut;
 const path = require('path');
 const psTree = require('ps-tree');
 const isDev = require('electron-is-dev');
+const url = require('url');
 const rq = require('request-promise');
 const unhandled = require('electron-unhandled');
 
 const portable_path = process.env.PORTABLE_EXECUTABLE_DIR;
 const exec_path = (portable_path === undefined) ? path.join(__dirname, '../') : portable_path;
-console.log(exec_path);
+
+//fmkadmapgofadopljbjfkapdkoienihi
 
 /*************************************************************
  * py process
@@ -101,6 +103,11 @@ function createWindow() {
     app.commandLine.appendSwitch('force-device-scale-factor', '1');
     mainWindow = new BrowserWindow({width: 500, height: 640, frame: false, webPreferences: { nodeIntegration: true }});
     mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`);
+    /*mainWindow.loadURL(url.format({
+        pathname: isDev ? '127.0.0.1:3000' : path.join(__dirname, '../build/index.html'),
+        protocol: isDev ? 'http:' : 'file:',
+        slashes: true
+    }));*/
     mainWindow.on('closed', () => mainWindow = null);
 }
 
@@ -108,7 +115,13 @@ app.on('ready', () =>{
     createPyProc();
     createWindow();
     menu.setApplicationMenu(null);
-    globalShortcut.register("CmdOrCtrl + Shift + I", () => {mainWindow.webContents.openDevTools()})
+    globalShortcut.register("CmdOrCtrl + Shift + I", () => {mainWindow.webContents.openDevTools()});
+    // React Dev Tools
+    if (isDev){
+        BrowserWindow.addDevToolsExtension(
+            path.join('C:\\Users\\Michal\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Extensions\\fmkadmapgofadopljbjfkapdkoienihi\\4.4.0_0')
+        )
+    }
 });
 
 app.on('window-all-closed', () => {
@@ -124,7 +137,6 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () =>{
-    console.log("I got here");
     exitPyProc();
 });
 

@@ -20,12 +20,6 @@ class Section extends PureComponent {
         );
     }
 
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        if (!prevProps.active && this.props.active){
-            this.props.onBecomeActive(this.props.time);
-        }
-    }
-
     hasScore = () => {
         return (this.props.score !== undefined)
     };

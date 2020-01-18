@@ -1,9 +1,8 @@
 import sys
 import threading
-from flask import Flask, jsonify
-from flask_cors import cross_origin
-from flask_socketio import SocketIO
-# from cheroot.wsgi import Server as WSGIServer, PathInfoDispatcher
+from gevent import pywsgi, monkey
+from geventwebsocket.handler import WebSocketHandler
+from socketio import Server, WSGIApp
 from finitestatemachine import FSMWithMemory, State
 from instancemanager import InstanceManager
 from songdata import SongData
@@ -14,9 +13,11 @@ import os
 import time
 import logging
 import re
-import traceback
 import json
-import random
+
+# Gevent monkey patch =====================
+
+monkey.patch_all()
 
 
 # Script args =============================
@@ -46,7 +47,7 @@ def exec_path():
 log_main = logging.getLogger(__name__)
 log_main.setLevel(logging.INFO)
 
-formatter = logging.Formatter('%(asctime)s  %(levelname)-8s %(message)s', '%Y-%m-%d %H:%M:%S')
+formatter = logging.Formatter('%(asctime)s  %(levelname)-8s %(message)s')
 
 # Create 'logs' folder if it doesn't exist
 if not os.path.isdir(exec_path() + '/logs'):
@@ -70,8 +71,9 @@ log_main.addHandler(file_handler)
 
 # Flask ==================================
 
-app = Flask(__name__)
-sio = SocketIO(app, cors_allowed_origins="*")
+sio = Server(async_mode='gevent', cors_allowed_origins="*")
+app = WSGIApp(sio)
+
 log_flask = logging.getLogger('werkzeug')
 log_flask.disabled = True
 
@@ -96,13 +98,8 @@ def send_single(data, event_name, jsonify=False):
     sio.emit(event_name, data, json=jsonify)
 
 
-@sio.on('connect')
-def handle_handshake():
-    log_main.info("SocketIO connection established")
-
-
 @sio.on('REQUEST_DATA')
-def request_data(data_id):
+def request_data(sid, data_id):
     log_main.info("Manual data request: {}".format(data_id))
     if data_id == "state":
         log_main.debug("state: {}".format(fsm_main.current_state.name))
@@ -120,19 +117,26 @@ def request_data(data_id):
 
 
 @sio.on('SHUTDOWN')
-def shutdown_server():
-    sio.stop()
+def shutdown_server(sid):
+    wsgi_server.stop()
     thread_fsm.do_run = False
     thread_fsm.join()
     sys.exit(0)
 
 
-@app.errorhandler(Exception)
-@cross_origin()
-def all_exception_handler(error):
-    log_main.error("Flask exception: {}".format(traceback.format_exc()))
-    response = json.dumps({})
-    return response, 500
+@sio.on('callback')
+def acknowledge_success(sid, data):
+    log_main.debug("DATA: {}".format(data))
+
+
+@sio.event
+def connect(sid, environ):
+    print('connect ', sid)
+
+
+@sio.event
+def disconnect(sid):
+    print('disconnect ', sid)
 
 
 # States ==================================
@@ -151,19 +155,16 @@ def init_entry(memory, previous_state):
 
 
 def init_do(memory):
-    result = memory["instance_manager"].attach()
-    if not result:
+    if memory["instance_manager"].instance is None and not memory["instance_manager"].attach():
         time.sleep(0.5)
-    return result
-
-
-def init_exit(memory, next_state):
+        return False
     if not memory["instance_manager"].load_addresses(True):
-        log_main.error("Couldn't retrieve base addresses, try selecting the appropriate game version")
-        raise Exception("Couldn't retrieve base addresses")
+        time.sleep(0.5)
+        return False
+    return True
 
 
-state_init = State("init", on_entry=init_entry, on_exit=init_exit, do=init_do)
+state_init = State("init", on_entry=init_entry, do=init_do)
 
 
 # State: Menu =============================
@@ -222,7 +223,9 @@ def pregame_do(memory):
 def pregame_exit(memory, next_state):
     song_data = memory["song_data"].to_dict()
     pb_data = memory["split_file"].get_personal_best(song_data["instrument"], song_data["difficulty"])
+    game_data = memory["game_data"].to_dict()
     send_data([song_data, pb_data], ["song", "pb"], "TRANSFER_SONG_DATA")
+    send_data(game_data, "game", "TRANSFER_GAME_DATA")
 
 
 state_pregame = State("pregame", do=pregame_do, on_exit=pregame_exit)
@@ -231,42 +234,27 @@ state_pregame = State("pregame", do=pregame_do, on_exit=pregame_exit)
 # State: Game =============================
 
 def game_entry(memory, previous_state):
-    memory["prev_game_data"] = {
-        "score": -1,
-        "time": -1,
-        "splits_len": -1,
-        "active_section": None
-    }
+    memory["probe"] = threading.Thread(target=game_probe, args=(memory,))
+    memory["probe_run"] = True
+    memory["probe"].start()
 
 
 def game_do(memory):
-    # new_addr = memory["instance_manager"].get_address("position")
-    # addresses_unchanged = memory["instance_manager"].addresses["position"] == new_addr
     try:
         memory["game_data"].get_current_data(memory["instance_manager"], memory["song_data"])
-        # if memory["previous_score"] != memory["game_data"].score or previous_splits_length != len(memory["game_data"].splits):
-        #     game_data = memory["game_data"].to_dict()
-        #     send_data(game_data, "game", "TRANSFER_GAME_DATA")
     except WindowsError:
         log_main.error("Unexpected pointer change")
-
-    send_game_changes(memory["prev_game_data"], memory["game_data"])
 
     in_menu = memory["instance_manager"].get_value("in_menu", True) == 1
     in_game = memory["instance_manager"].get_value("in_game", True) == 1
     in_practice = memory["instance_manager"].get_value("in_practice", True) == 1
 
-    if memory["prev_game_data"]["time"] > memory["game_data"].time and memory["game_data"].time < 0:
-        game_restart(memory)
-        sio.emit("GAME_EVENT", "restart")
-    memory["prev_game_data"]["time"] = memory["game_data"].time
-    memory["prev_game_data"]["score"] = memory["game_data"].score
-    memory["prev_game_data"]["splits_len"] = len(memory["game_data"].splits)
-    memory["prev_game_data"]["active_section"] = memory["game_data"].activeSection
     return in_menu, in_game, in_practice
 
 
 def game_exit(memory, next_state):
+    memory["probe_run"] = False
+    memory["probe"].join()
     if next_state != state_endscreen:
         if "song_data" in memory:
             log_main.info("Clearing song data...")
@@ -286,15 +274,29 @@ def game_restart(memory):
         memory["game_data"] = GameData(logger=log_main)
 
 
-def send_game_changes(prev, cur):
-    if prev["score"] != cur.score:
-        send_single(cur.score, "TRANSFER_GAME_DATA[score]")
-    if int(prev["time"]) < int(cur.time):
-        send_single(cur.time, "TRANSFER_GAME_DATA[time]")
-    if prev["active_section"] is not None and prev["splits_len"] < len(cur.splits):
-        send_single("{}:{}".format(prev["active_section"], cur.splits[prev["active_section"]]), "TRANSFER_GAME_DATA[newSplit]")
-    if prev["active_section"] is not None and prev["active_section"] < cur.activeSection:
-        send_single(cur.activeSection, "TRANSFER_GAME_DATA[activeSection]")
+def game_probe(memory):
+    prev = {
+        "score": -1,
+        "time": -1,
+        "splits_len": 0,
+        "active_section": -1
+    }
+    cur = memory["game_data"]
+    while memory["probe_run"]:
+        if int(prev["time"]) < int(cur.time):
+            send_single(cur.time, "TRANSFER_GAME_DATA[time]")
+            prev["time"] = cur.time
+        if prev["score"] != cur.score:
+            send_single(cur.score, "TRANSFER_GAME_DATA[score]")
+            prev["score"] = cur.score
+        if prev["active_section"] != -1 and prev["splits_len"] < len(cur.splits):
+            send_single("{}:{}".format(prev["active_section"], cur.splits[prev["active_section"]]),
+                        "TRANSFER_GAME_DATA[newSplit]")
+            prev["splits_len"] = len(cur.splits)
+        if cur.activeSection is not None and prev["active_section"] < cur.activeSection:
+            send_single(cur.activeSection, "TRANSFER_GAME_DATA[activeSection]")
+            prev["active_section"] = cur.activeSection
+        time.sleep(0.1)
 
 
 state_game = State("game", do=game_do, on_entry=game_entry, on_exit=game_exit)
@@ -389,7 +391,6 @@ def main_loop(fsm):
 
 # Main ====================================
 
-
 if __name__ == '__main__':
     # Load config file
     config = utils.load_ini_file(exec_path() + '/config.ini')
@@ -416,8 +417,6 @@ if __name__ == '__main__':
     thread_fsm.start()
 
     listening_port = parse_port()
-    sio.run(app, port=listening_port)
-    '''dispatcher = PathInfoDispatcher({'/': sio})
-    server = WSGIServer(('127.0.0.1', listening_port), dispatcher)
-    server.start()'''
-
+    wsgi_server = pywsgi.WSGIServer(('127.0.0.1', listening_port), app, handler_class=WebSocketHandler)
+    wsgi_server.serve_forever()
+    # app.run(threaded=True, host='127.0.0.1', port=listening_port)

@@ -9,6 +9,10 @@ import Notification from "./components/notification";
 import io from 'socket.io-client'
 
 let open = window.require("open");
+if (process.env.NODE_ENV !== 'production') {
+    const whyDidYouRender = require('@welldone-software/why-did-you-render/dist/no-classes-transpile/umd/whyDidYouRender.min.js');
+    whyDidYouRender(React);
+}
 
 const socketURL = "http://127.0.0.1:58989";
 
@@ -18,13 +22,22 @@ class App extends Component {
         submenuOpenedType: null,
         gameState: null,
         sectionHolder: new Map(),
-        activeSection: null,
         song: null,
-        game: {score: 0, time: 0, activeSection: null, splits: {}},
+        game: {score: 0, time: -1, activeSection: undefined, splits: {}},
         pb: null,
         notifications: [],
         newUpdate: false,
-        socket: null
+        socket: null,
+        preferences: {
+            selectedVersion: "23_2_2",
+            alwaysOnTop: false,
+            showSingleSection: false,
+            showActiveSectionDifference: false,
+            showSongProgressBar: true,
+            showAnimations: true,
+            enableAutoscroll: true,
+            styleChosen: "defaultLight"
+        }
     };
 
     componentDidMount() {
@@ -35,12 +48,8 @@ class App extends Component {
         });
         this.initSocket().then(() => {
             this.setupListeners();
-            this.initialStateCheck();
+            this.retrieveAllData();
         });
-        /*this.timerGameState = setInterval(
-            () => { this.doAppTick(); },
-            250
-        );*/
     }
 
     async initSocket(){
@@ -60,63 +69,74 @@ class App extends Component {
             const parsedData = this.parseTransferredData(data);
             this.addDataToState(parsedData);
             this.setState({sectionHolder: new Map()});
-            this.initializeSectionObjects(this.state.song.sections);
+            this.initializeSectionObjects();
         });
         this.state.socket.on('TRANSFER_GAME_DATA', (data) => {
             const parsedData = this.parseTransferredData(data);
-            const dataGame = this.state.game;
-            dataGame.score = parsedData.score;
-            dataGame.time = parsedData.time;
-            dataGame.activeSection = parsedData.activeSection;
-            dataGame.splits = parsedData.splits;
-            this.updateSplitsInfo();
+            let game = {score: parsedData.score === undefined ? 0 : parsedData.score,
+                        time: parsedData.time === undefined ? -1.0 : parsedData.time,
+                        activeSection: parsedData.activeSection,
+                        splits: parsedData.splits === undefined ? {} : parsedData.splits};
+            this.setState({game});
         });
         this.state.socket.on('TRANSFER_GAME_DATA[score]', (data) => {
-            const dataGame = this.state.game;
-            dataGame.score = parseInt(data);
-            this.setState({dataGame});
+            if (this.state.score !== parseInt(data)){
+                this.setState({game:{...this.state.game, score: parseInt(data)}});
+                //this.updateSplitsInfo();
+            }
         });
         this.state.socket.on('TRANSFER_GAME_DATA[time]', (data) => {
-            const dataGame = this.state.game;
-            dataGame.time = parseFloat(data);
-            this.setState({dataGame});
+            if (this.state.game.time !== parseFloat(data)){
+                this.setState({game:{...this.state.game, time: parseFloat(data)}});
+            }
         });
         this.state.socket.on('TRANSFER_GAME_DATA[newSplit]', (data) => {
-            const dataGame = this.state.game;
             const splitInfo = data.split(":");
-            dataGame.splits[parseInt(splitInfo[0])] = parseInt(splitInfo[1]);
-            this.setState({dataGame});
+            if (!(parseInt(splitInfo[0]) in this.state.game.splits)) {
+                let newSplits = {};
+                Object.assign(newSplits, this.state.game.splits);
+                newSplits[parseInt(splitInfo[0])] = parseInt(splitInfo[1]);
+                this.setState(prevState => ({
+                    game: {...prevState.game,
+                        splits: newSplits
+                    }
+                }));
+                //this.updateAllCurrentSplits();
+            }
         });
         this.state.socket.on('TRANSFER_GAME_DATA[activeSection]', (data) => {
-            const dataGame = this.state.game;
-            dataGame.activeSection = parseInt(data);
-            this.setState({dataGame});
+            if (this.state.game.activeSection !== parseInt(data)) {
+                this.setState({game:{...this.state.game, activeSection: parseInt(data)}});
+                this.updateAllCurrentSplits();
+            }
         });
         this.state.socket.on('TRANSFER_STATE_DATA', (data) => {
-            this.setState({gameState: data});
+            if (this.state.gameState !== data) {
+                this.handleChangeOfState(data);
+                this.setState({gameState: data});
+            }
         });
         this.state.socket.on('GAME_EVENT', (event) => {
             this.handleRaisedEvent(event);
         });
     };
 
-    initialStateCheck = () => {
+    retrieveAllData = () => {
         this.manualRequest("state").then((gameState) => {
             let parsedData = JSON.parse(gameState);
             this.setState({ gameState: parsedData.state });
             if (parsedData.state === "game" || gameState.state === "endscreen"){
                 const promiseSong = this.manualRequest("song").then((songData) => {
-                    console.log("song data received");
-                    const parsedData = this.parseTransferredData(songData);
-                    this.addDataToState(parsedData);
+                    const data = this.parseTransferredData(songData);
+                    this.addDataToState(data);
                 });
                 const promiseGame = this.manualRequest("game").then((gameData) => {
-                    const parsedData = this.parseTransferredData(gameData);
-                    this.addDataToState(parsedData);
+                    const data = this.parseTransferredData(gameData);
+                    this.addDataToState(data);
                 });
                 Promise.all([promiseSong, promiseGame]).then(() => {
-                    this.initializeSectionObjects(this.state.song.sections);
-                    this.updateSplitsInfo();
+                    this.initializeSectionObjects();
+                    this.updateAllCurrentSplits();
                 });
             }
         });
@@ -126,10 +146,11 @@ class App extends Component {
         return JSON.parse(data);
     };
 
-    addDataToState = (data) => {
-        console.log(data);
+    addDataToState(data){
         for (let key in data){
-            if (data.hasOwnProperty(key)) this.setState({[key]: data[key]});
+            if (data.hasOwnProperty(key)){
+                this.setState({[key]: data[key]});
+            }
         }
     };
 
@@ -156,7 +177,9 @@ class App extends Component {
         })
     }
 
-    initializeSectionObjects = (songSections, pbSplits) => {
+    initializeSectionObjects = () => {
+        const songSections = this.state.song.sections;
+        const pbSplits = this.state.pb;
         const sectionHolder = this.state.sectionHolder;
         songSections.forEach((section) => {
             let sectionInfo = {
@@ -164,31 +187,24 @@ class App extends Component {
                 time: section[0],
                 active: false,
                 sectionScore: undefined,
-                pbScore: (pbSplits != null) ? pbSplits[section[0]] : null
+                pbScore: (!isDictEmpty(pbSplits)) ? pbSplits[section[0]] : null
             };
             sectionHolder.set(section[0], sectionInfo);
         });
         this.setState({sectionHolder});
     };
 
-    updateAllCurrentSplits = (currentSplits) => {
-        const sectionHolder = this.state.sectionHolder;
+    updateAllCurrentSplits = () => {
+        const currentSplits = this.state.game.splits;
+        const activeSection = this.state.game.activeSection;
+        let newMap = new Map(this.state.sectionHolder);
         for (const [position, score] of Object.entries(currentSplits)) {
-            sectionHolder.get(parseInt(position)).sectionScore = score;
+            newMap.get(parseInt(position)).sectionScore = score;
         }
-        this.setState({sectionHolder});
-    };
-
-    updateSplitsInfo = () => {
-        const {sectionHolder, game, activeSection} = this.state;
-        if (game.activeSection !== activeSection){
-            this.updateAllCurrentSplits(game.splits);
-            if (activeSection !== null) sectionHolder.get(activeSection).active = false;
-            sectionHolder.get(game.activeSection).active = true;
-            this.setState({activeSection: game.activeSection})
-        }
-        sectionHolder.get(game.activeSection).sectionScore = game.score;
-        this.setState(sectionHolder)
+        newMap.forEach((value => {value.active = false}));
+        newMap.get(activeSection).active = true;
+        if (this.state.sectionHolder !== newMap)
+            this.setState({sectionHolder: newMap});
     };
 
     handleToggleSidebar = () => {
@@ -206,6 +222,20 @@ class App extends Component {
         }
     };
 
+    handleChangeOfState = (newState) => {
+        if (newState === "menu"){
+            this.resetSongData();
+        }
+    };
+
+    resetSongData = () => {
+        this.setState({
+            song: null,
+            game: {score: 0, time: -1, activeSection: undefined, splits: {}},
+            pb: null
+        })
+    };
+
     render() {
         return (
             <React.Fragment>
@@ -217,7 +247,8 @@ class App extends Component {
                              onMenuSelect={this.handleToggleSubmenu}
                              onSubmenuDefocus={(this.state.submenuOpenedType != null ? () => this.handleToggleSubmenu(null) : undefined)}
                     />
-                    <Mainbar data={{'song': this.state.song, 'pb': this.state.pb, 'game': this.state.game}}
+                    <Mainbar song={this.state.song}
+                             game={this.state.game}
                              notifications={this.state.notifications}
                              renderState={this.state.gameState}
                              sectionHolder={this.state.sectionHolder}
@@ -225,7 +256,7 @@ class App extends Component {
                              onSidebarDefocus={(this.state.sidebarOpened ? this.handleToggleSidebar : undefined)}
                     />
                 </section>
-                <Submenu openedSubmenu={this.state.submenuOpenedType} newUpdate={this.state.newUpdate} checkForUpdates={this.checkUpToDate}/>
+                <Submenu openedSubmenu={this.state.submenuOpenedType} newUpdate={this.state.newUpdate} checkForUpdates={this.checkUpToDate} preferences={this.state.preferences} onPreferenceUpdate={this.updatePreference}/>
             </React.Fragment>
         );
     }
@@ -242,6 +273,14 @@ class App extends Component {
         console.log("removing " + notification);
         let filtered = this.state.notifications.filter(x => (x.props.id !== notification));
         this.setState({notifications: filtered});
+    };
+
+    updatePreference = (id, val) =>{
+        this.setState(prevState => ({
+            preferences: {...prevState.preferences,
+                [id]: val
+            }
+        }));
     };
 
     checkUpToDate = async () => {
@@ -263,6 +302,7 @@ class App extends Component {
             this.setState({newUpdate: result});
             return result;
         }).catch((e) => {
+            console.error(e);
             return false;
         });
     };
@@ -303,6 +343,10 @@ class App extends Component {
 const getNewVersion = () => {
     const newVersionURL = "https://chsplit.tornith.cz/get_version.php?version=newest";
     open(newVersionURL);
+};
+
+const isDictEmpty = (dict) => {
+    return Object.keys(dict).length === 0;
 };
 
 export default App;
