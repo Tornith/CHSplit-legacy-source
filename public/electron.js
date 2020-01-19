@@ -97,10 +97,14 @@ const killProcesses = (process) => {
 
 let mainWindow;
 
-function createWindow() {
+function createWindow(config) {
     app.commandLine.appendSwitch('high-dpi-support', 'true');
     app.commandLine.appendSwitch('force-device-scale-factor', '1');
     mainWindow = new BrowserWindow({width: 500, height: 640, frame: false, webPreferences: { nodeIntegration: true }});
+    if (config.alwaysOnTop){
+        mainWindow.setAlwaysOnTop(true, "floating", 1);
+        mainWindow.setVisibleOnAllWorkspaces(true);
+    }
     mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`);
     /*mainWindow.loadURL(url.format({
         pathname: isDev ? '127.0.0.1:3000' : path.join(__dirname, '../build/index.html'),
@@ -151,15 +155,25 @@ function writeConfigFile(config, path){
     });
 }
 
-function saveConfig(){
+function updateConfig(id, val){
+    if(id === "alwaysOnTop"){
+        if (val){
+            mainWindow.setAlwaysOnTop(true, "floating", 1);
+            mainWindow.setVisibleOnAllWorkspaces(true);
+        }
+        else{
+            mainWindow.setAlwaysOnTop(false);
+            mainWindow.setVisibleOnAllWorkspaces(false);
+        }
+    }
     writeConfigFile(config, path.join(__dirname, "..", "config.yml"));
 }
 
 app.on('ready', () =>{
     global.config = loadConfig();
-    global.saveConfig = saveConfig;
+    global.updateConfig = updateConfig;
     createPyProc(config);
-    createWindow();
+    createWindow(config);
     menu.setApplicationMenu(null);
     globalShortcut.register("CmdOrCtrl + Shift + I", () => {mainWindow.webContents.openDevTools()});
     // React Dev Tools

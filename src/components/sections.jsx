@@ -17,6 +17,7 @@ class Sections extends PureComponent {
                              pb={section.pbScore}
                              totalScore={this.props.game.score}
                              onBecomeActive={this.handleScrollTo}
+                             preferences={this.props.preferences}
                     />
                 ))}
             </div>
@@ -24,7 +25,6 @@ class Sections extends PureComponent {
     }
 
     handleScrollTo(sectionID){
-        console.log(sectionID);
         scrollToSection("section-" + sectionID);
     }
 }

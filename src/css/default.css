@@ -1,72 +1,3 @@
-:root{
-    --font-primary: LeagueSpartan;
-    --font-secondary: Raleway;
-
-    --header-background-color: #202020;
-    --header-buttons-background-color: rgba(255, 255, 255, 0.05);
-    --header-buttons-hover-color: rgba(255, 255, 255, 0.2);
-    --header-buttons-close-hover-color: rgb(232, 17, 35);
-    --header-buttons-active-color: rgba(255, 255, 255, 1);
-    --header-buttons-transition: 0.05s;
-    --header-font-color: #fff;
-    --header-height: 25px;
-
-    --sidebar-background-color: #202020;
-    --sidebar-width-opened: 200px;
-    --sidebar-width-closed: 40px;
-    --sidebar-opening-transition: 0.1s;
-    --sidebar-menu-text-color: rgba(255, 255, 255, 0.9);
-    --sidebar-menu-button-height: 40px;
-
-    --sidemenu-background-color: #404040;
-    --sidemenu-font-color: #fff;
-
-    --mainbar-background: #eee;
-    --mainbar-message-color: rgba(0, 0, 0, 0.75);
-
-    --panel-song-text-color: #000;
-
-    --panel-song-height: 140px;
-    --panel-song-padding: 25px;
-    --panel-song-songname-size: 12pt;
-
-    --panel-score-max-width: 340px;
-    --panel-score-total-size: 36pt;
-    --panel-score-diff-size: 13pt;
-    --panel-score-diff-color-positive: #0084ff;
-    --panel-score-diff-color-negative: #cc2200;
-
-    --panel-progress-bar-height: 12px;
-    --panel-progress-time-font-size: 12pt;
-    --panel-progress-time-color: rgba(0, 0, 0, 0.5);
-    --panel-progress-bar-color: linear-gradient(96deg, #0049cd, #0084ff);
-    --panel-progress-bar-animation-translate: 37px;
-    --panel-progress-bar-animation-speed: 3s;
-
-    --section-background-odd: rgba(90, 90, 90, 1);
-    --section-background-even: rgba(75, 75, 75, 1);
-    --section-background-active: rgba(150, 150, 150, 1);
-    --section-font-color: #fff;
-    --section-font-color-positive: #40a6ff;
-    --section-font-color-negative: #cc2200;
-    --section-font-color-zero: #aaa;
-    --section-font-color-active-positive: #0084ff;
-    --section-font-color-active-negative: #cc2200;
-    --section-old-score-color: #888;
-    --section-border-active-width: 0 4px 0 4px;
-    --section-border-active-color: #0084ff;
-
-    --scrollbar-background: rgba(0, 0, 0, 0.25);
-    --scrollbar-color: rgba(255, 255, 255, 0.9);
-
-    --notification-info-background: linear-gradient(0deg, #368ad9, #40a3ff 50%, #368ad9);
-    --notification-warning-background: linear-gradient(0deg, #d9be36, #ffe042 50%, #d9be36);
-    --notification-error-background: linear-gradient(0deg, #d93636, #ff4040 50%, #d93636);
-    --notification-update-background: linear-gradient(0deg, #36d985, #40ff9f 50%, #36d985);
-
-    --small-viewport: calc(var(--panel-score-max-width) * 2);
-}
-
 ::-webkit-scrollbar {
     width: 10px;
 }
@@ -79,6 +10,10 @@
 ::-webkit-scrollbar-thumb {
     background: var(--scrollbar-color);
     border-radius: 5px;
+}
+
+.no-anim, .no-anim *, .no-anim main::after{
+    transition: none !important;
 }
 
 @keyframes MOVE-BG {
@@ -410,6 +345,8 @@ main{
     width: 100vw;
     height: 100%;
     background: var(--mainbar-background);
+    display: flex;
+    flex-direction: column;
 }
 
 main::after{
@@ -420,7 +357,7 @@ main::after{
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(255, 255, 255, 0.75);
+    background-color: var(--sidebar-mainbar-defocus-color);
     opacity: 0;
     z-index: 1;
     pointer-events: none;
@@ -435,12 +372,14 @@ main.sidebarOpened::after{
 }
 
 .panel-song{
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     height: var(--panel-song-height);
     padding: 0 var(--panel-song-padding);
+    color: var(--panel-song-text-color);
     width: 100%;
 }
 
@@ -467,7 +406,7 @@ main.sidebarOpened::after{
 .spt{
     width: 50px;
     height: 2px;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--panel-song-separator-color);
     margin: 8px auto;
 }
 
@@ -498,6 +437,10 @@ main.sidebarOpened::after{
 .panel-progress{
     text-align: right;
     margin-top: calc(0px - var(--panel-progress-bar-height));
+}
+
+.panel-progress.hidden{
+    display: none;
 }
 
 .song-time{
@@ -551,16 +494,24 @@ main.sidebarOpened::after{
     animation-duration: var(--panel-progress-bar-animation-speed);
 }
 
+.no-anim .song-progress-bar-wrapper .stripes{
+    display: none;
+}
+
 .panel-sections{
     display: block;
     flex-direction: column;
     justify-content: center;
     align-items: stretch;
-    height: calc(100% - var(--panel-song-height) - var(--panel-progress-bar-height) - var(--panel-progress-bar-height)/2 - 1px);
+    height: 100%;
     overflow-y: auto;
     background: var(--section-background-odd);
     scroll-behavior: smooth;
     position: relative;
+}
+
+.no-anim .panel-sections{
+    scroll-behavior: unset;
 }
 
 .panel-sections .section{

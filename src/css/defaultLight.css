@@ -1,0 +1,69 @@
+:root{
+    --font-primary: LeagueSpartan;
+    --font-secondary: Raleway;
+
+    --header-background-color: #202020;
+    --header-buttons-background-color: rgba(255, 255, 255, 0.05);
+    --header-buttons-hover-color: rgba(255, 255, 255, 0.2);
+    --header-buttons-close-hover-color: rgb(232, 17, 35);
+    --header-buttons-active-color: rgba(255, 255, 255, 1);
+    --header-buttons-transition: 0.05s;
+    --header-font-color: #fff;
+    --header-height: 25px;
+
+    --sidebar-background-color: #202020;
+    --sidebar-width-opened: 200px;
+    --sidebar-width-closed: 40px;
+    --sidebar-opening-transition: 0.1s;
+    --sidebar-menu-text-color: rgba(255, 255, 255, 0.9);
+    --sidebar-menu-button-height: 40px;
+    --sidebar-mainbar-defocus-color: rgba(255, 255, 255, 0.75);
+
+    --sidemenu-background-color: #404040;
+    --sidemenu-font-color: #fff;
+
+    --mainbar-background: #eee;
+    --mainbar-message-color: rgba(0, 0, 0, 0.75);
+
+    --panel-song-text-color: #000;
+    --panel-song-height: 140px;
+    --panel-song-padding: 25px;
+    --panel-song-songname-size: 12pt;
+    --panel-song-separator-color: rgba(0, 0, 0, 0.5);
+
+    --panel-score-max-width: 340px;
+    --panel-score-total-size: 36pt;
+    --panel-score-diff-size: 13pt;
+    --panel-score-diff-color-positive: #0084ff;
+    --panel-score-diff-color-negative: #cc2200;
+
+    --panel-progress-bar-height: 12px;
+    --panel-progress-time-font-size: 12pt;
+    --panel-progress-time-color: rgba(0, 0, 0, 0.5);
+    --panel-progress-bar-color: linear-gradient(96deg, #0049cd, #0084ff);
+    --panel-progress-bar-animation-translate: 37px;
+    --panel-progress-bar-animation-speed: 3s;
+
+    --section-background-odd: rgba(90, 90, 90, 1);
+    --section-background-even: rgba(75, 75, 75, 1);
+    --section-background-active: rgba(150, 150, 150, 1);
+    --section-font-color: #fff;
+    --section-font-color-positive: rgba(64, 166, 255, 0.95);
+    --section-font-color-negative: rgba(204, 34, 0, 0.95);
+    --section-font-color-zero: #aaa;
+    --section-font-color-active-positive: rgba(0, 132, 255, 0.95);
+    --section-font-color-active-negative: rgba(204, 34, 0, 0.95);
+    --section-old-score-color: rgba(255, 255, 255, 0.33);
+    --section-border-active-width: 0 4px 0 4px;
+    --section-border-active-color: #0084ff;
+
+    --scrollbar-background: rgba(0, 0, 0, 0.25);
+    --scrollbar-color: rgba(255, 255, 255, 0.9);
+
+    --notification-info-background: linear-gradient(0deg, #368ad9, #40a3ff 50%, #368ad9);
+    --notification-warning-background: linear-gradient(0deg, #d9be36, #ffe042 50%, #d9be36);
+    --notification-error-background: linear-gradient(0deg, #d93636, #ff4040 50%, #d93636);
+    --notification-update-background: linear-gradient(0deg, #36d985, #40ff9f 50%, #36d985);
+
+    --small-viewport: calc(var(--panel-score-max-width) * 2);
+}

@@ -30,9 +30,9 @@ class GameData(object):
     def get_current_data(self, instance_manager, song):
         previous_section = self.activeSection
         try:
-            self.score = instance_manager.get_value("score")
-            self.position = instance_manager.get_value("position")
-            self.time = instance_manager.get_value("time")
+            self.score = instance_manager.get_value_pure("score")
+            self.position = instance_manager.get_value_pure("position")
+            self.time = instance_manager.get_value_pure("time")
             self.activeSection = song.get_section_from_time(self.position)
             if previous_section is not None and \
                     self.activeSection not in self.splits and \

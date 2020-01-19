@@ -14,7 +14,7 @@ class SongInfo extends PureComponent {
                         <span className={"total-score-difference " + ((this.props.game.score >= 0) ? "positive" : "negative")}>{this.formatNumbers(this.props.game.score, true)}</span>
                     </div>
                 </div>
-                <div className="panel-progress" id="panel-progress">
+                <div className={"panel-progress" + (this.props.preferences.showSongProgressBar ? "" : " hidden")} id="panel-progress">
                     <span className="song-time">{this.formatTime(this.props.game.time) + " / " + this.formatTime(this.props.song.length)}</span>
                     <div className="song-progress-bar-wrapper">
                         <div className="song-progress-bar" style={{width: (100 * (this.props.game.time > 0 ? this.props.game.time : 0) / this.props.song.length) + "%"}}>

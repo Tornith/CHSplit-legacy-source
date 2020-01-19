@@ -8,10 +8,10 @@ class Mainbar extends Component {
         return (
             <main className={this.getOpened(this.props.sidebarOpened)} onClick={this.props.onSidebarDefocus}>
                 <NotificationBar notifications={this.props.notifications}/>
-                {this.props.renderState === "game" && this.props.song != null && this.props.game != null &&
+                {((this.props.renderState === "game" && this.props.song != null && this.props.game != null) || (this.props.renderState === "endscreen")) &&
                     <React.Fragment>
-                        <SongInfo song={this.props.song} game={this.props.game} />
-                        <Sections game={this.props.game} sectionHolder={this.props.sectionHolder}/>
+                        <SongInfo song={this.props.song} game={this.props.game} preferences={this.props.preferences} />
+                        <Sections game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
                     </React.Fragment>
                 }
                 {this.props.renderState === "menu" &&
@@ -28,12 +28,6 @@ class Mainbar extends Component {
                 <div className="menu-msg">
                     <h2>Uh oh!</h2> <p>CHSplit can't do shit while you're in practice! Sorry...</p>
                 </div>
-                }
-                {this.props.renderState === "endscreen" &&
-                <React.Fragment>
-                    <SongInfo song={this.props.song} game={this.props.game} />
-                    <Sections game={this.props.game} sectionHolder={this.props.sectionHolder}/>
-                </React.Fragment>
                 }
             </main>
         );

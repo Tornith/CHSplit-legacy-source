@@ -85,7 +85,9 @@ def send_data(data, name, event_name):
     else:
         log_main.error("Invalid data send message: data={}, names={}".format(data, name))
         return False
-    sio.emit(event_name, json.dumps(message), json=True)
+    msg_dump = json.dumps(message)
+    log_main.debug("Sent {}\n\tMessage: {}".format(event_name, msg_dump))
+    sio.emit(event_name, msg_dump, json=True)
     return True
 
 
@@ -234,6 +236,13 @@ state_pregame = State("pregame", do=pregame_do, on_exit=pregame_exit)
 def game_entry(memory, previous_state):
     memory["probe"] = threading.Thread(target=game_probe, args=(memory,))
     memory["probe_run"] = True
+    memory["probe_reset"] = False
+    memory["previous_game_data"] = {
+        "score": -1,
+        "time": -1,
+        "splits_len": 0,
+        "active_section": -1
+    }
     memory["probe"].start()
 
 
@@ -246,6 +255,9 @@ def game_do(memory):
     in_menu = memory["instance_manager"].get_value("in_menu", True) == 1
     in_game = memory["instance_manager"].get_value("in_game", True) == 1
     in_practice = memory["instance_manager"].get_value("in_practice", True) == 1
+
+    if (not in_menu and in_game) and memory["previous_game_data"]["time"] > memory["game_data"].time:
+        game_restart(memory)
 
     return in_menu, in_game, in_practice
 
@@ -270,15 +282,17 @@ def game_restart(memory):
     if "game_data" in memory:
         log_main.info("Clearing game data...")
         memory["game_data"] = GameData(logger=log_main)
+        send_data(memory["game_data"].to_dict(), "game", "TRANSFER_GAME_DATA")
+        send_single("gameRestart", "GAME_EVENT")
+    while not memory["instance_manager"].load_addresses() and not memory["instance_manager"].get_value("in_menu", True):
+        log_main.debug("Help! Stuck in a loop")
+        time.sleep(0.1)
+        pass
+    memory["probe_reset"] = True
 
 
 def game_probe(memory):
-    prev = {
-        "score": -1,
-        "time": -1,
-        "splits_len": 0,
-        "active_section": -1
-    }
+    prev = memory["previous_game_data"]
     cur = memory["game_data"]
     while memory["probe_run"]:
         if int(prev["time"]) < int(cur.time):
@@ -294,6 +308,16 @@ def game_probe(memory):
         if cur.activeSection is not None and prev["active_section"] < cur.activeSection:
             send_single(cur.activeSection, "TRANSFER_GAME_DATA[activeSection]")
             prev["active_section"] = cur.activeSection
+        if memory["probe_reset"]:
+            memory["previous_game_data"] = {
+                "score": -1,
+                "time": -1,
+                "splits_len": 0,
+                "active_section": -1
+            }
+            prev = memory["previous_game_data"]
+            cur = memory["game_data"]
+            memory["probe_reset"] = False
         time.sleep(0.1)
 
 

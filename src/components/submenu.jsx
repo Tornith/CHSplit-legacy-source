@@ -7,7 +7,7 @@ import fetch from "./fetchWithTimeout";
 class Submenu extends Component {
     render() {
         return (
-            <div className={"submenu-wrapper " + ((this.props.openedSubmenu == null) ? "" : "opened")}>
+            <div className={"submenu-wrapper" + (this.props.preferences.showAnimations ? "" : " no-anim") + ((this.props.openedSubmenu == null) ? "" : " opened")}>
                 <SubmenuOptions opened={this.props.openedSubmenu === "Options"} preferences={this.props.preferences} onPreferenceUpdate={this.props.onPreferenceUpdate}/>
                 <SubmenuAbout opened={this.props.openedSubmenu === "About"} newUpdate={this.props.newUpdate} checkForUpdates={this.props.checkForUpdates}/>
             </div>
@@ -24,8 +24,8 @@ class SubmenuOptions extends Component {
                     <ListGroupAJAX id={"selectedGameVersion"} label={"Game version:"} getOptions={this.getGameVersions} value={this.props.preferences.selectedGameVersion} onInputUpdate={this.props.onPreferenceUpdate} />
                     <hr/>
                     <Checkbox id={"alwaysOnTop"} label={"Always on top"} value={this.props.preferences.alwaysOnTop} onInputUpdate={this.props.onPreferenceUpdate} />
-                    <Checkbox id={"showSingleSection"} label={"Show single section score"} value={this.props.preferences.showSingleSection} onInputUpdate={this.props.onPreferenceUpdate} />
-                    <Checkbox id={"showActiveSectionDifference"} label={"Show active section difference"} value={this.props.preferences.showActiveSectionDifference} onInputUpdate={this.props.onPreferenceUpdate} />
+                    <Checkbox id={"showActiveSectionDifference"} label={"Always show active section difference"} value={this.props.preferences.showActiveSectionDifference} onInputUpdate={this.props.onPreferenceUpdate} />
+                    <Checkbox id={"showActiveSectionScore"} label={"Show current score in an active section"} value={this.props.preferences.showActiveSectionScore} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showSongProgressBar"} label={"Show song's progress bar"} value={this.props.preferences.showSongProgressBar} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showAnimations"} label={"Show animations"} value={this.props.preferences.showAnimations} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"enableAutoscroll"} label={"Autoscroll to active section"} value={this.props.preferences.enableAutoscroll} onInputUpdate={this.props.onPreferenceUpdate} />

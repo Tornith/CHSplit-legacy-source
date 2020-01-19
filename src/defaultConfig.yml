@@ -2,7 +2,7 @@ config:
   debugMode: false
   selectedGameVersion: '23_2_2'
   alwaysOnTop: false
-  showSingleSection: false
+  showActiveSectionScore: false
   showActiveSectionDifference: false
   showSongProgressBar: true
   showAnimations: true

@@ -13,11 +13,17 @@ class Section extends PureComponent {
                 <div className={"section-diff " + this.getDifferenceClass()}>
                     {this.getDifferenceScoreValue()}
                 </div>
-                <div className={"section-score " + ((this.hasScore() || this.props.active) ? "" : "pb-score")}>
+                <div className={"section-score " + ((this.hasScore() || (this.props.active && this.props.preferences.showActiveSectionScore)) ? "" : "pb-score")}>
                     {this.getTotalScoreValue()}
                 </div>
             </div>
         );
+    }
+
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        if (!prevProps.active && this.props.active){
+            this.props.onBecomeActive(this.props.time);
+        }
     }
 
     hasScore = () => {
@@ -33,7 +39,9 @@ class Section extends PureComponent {
     getDifferenceScoreValue = () => {
         if (this.hasScore()) return this.formatNumbers(this.props.score - (this.props.pb != null ? this.props.pb : 0), true);
         else {
-            if (this.props.active) return this.formatNumbers(this.props.totalScore - (this.props.pb != null ? this.props.pb : 0), true);
+            if (this.props.active && this.props.preferences.showActiveSectionDifference){
+                return this.formatNumbers(this.props.totalScore - (this.props.pb != null ? this.props.pb : 0), true);
+            }
             else return "";
         }
     };
@@ -41,7 +49,7 @@ class Section extends PureComponent {
     getTotalScoreValue = () => {
         if (this.hasScore()) return this.formatNumbers(this.props.score);
         else{
-            if (this.props.active) return this.formatNumbers(this.props.totalScore);
+            if (this.props.active && this.props.preferences.showActiveSectionScore) return this.formatNumbers(this.props.totalScore);
             else{
                 return (this.props.pb != null) ? this.formatNumbers(this.props.pb) : ""
             }

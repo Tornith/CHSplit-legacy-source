@@ -33,6 +33,7 @@ class App extends Component {
             socket: null,
             preferences: preferences
         };
+        import("./css/" + this.state.preferences.styleChosen + ".css");
     }
 
     componentDidMount() {
@@ -150,7 +151,9 @@ class App extends Component {
     };
 
     handleRaisedEvent = (event) => {
-        console.log(event)
+        if (event === "gameRestart"){
+            this.clearSplits();
+        }
     };
 
     manualRequest(data, timeout=2000){
@@ -197,9 +200,14 @@ class App extends Component {
             newMap.get(parseInt(position)).sectionScore = score;
         }
         newMap.forEach((value => {value.active = false}));
-        newMap.get(activeSection).active = true;
+        newMap.get(activeSection !== undefined ? activeSection : this.state.song.sections[0][0]).active = true;
         if (this.state.sectionHolder !== newMap)
             this.setState({sectionHolder: newMap});
+    };
+
+    clearSplits = () => {
+        const {sectionHolder} = this.state;
+        sectionHolder.forEach((value => {value.sectionScore = undefined}));
     };
 
     handleToggleSidebar = () => {
@@ -235,7 +243,7 @@ class App extends Component {
         return (
             <React.Fragment>
                 <Header />
-                <section className="app-body">
+                <section className={"app-body" + (this.state.preferences.showAnimations ? "" : " no-anim")}>
                     <Sidebar opened={this.state.sidebarOpened}
                              openedSubmenu={this.state.submenuOpenedType}
                              onToggle={this.handleToggleSidebar}
@@ -249,6 +257,7 @@ class App extends Component {
                              sectionHolder={this.state.sectionHolder}
                              sidebarOpened={this.state.sidebarOpened}
                              onSidebarDefocus={(this.state.sidebarOpened ? this.handleToggleSidebar : undefined)}
+                             preferences={this.state.preferences}
                     />
                 </section>
                 <Submenu openedSubmenu={this.state.submenuOpenedType} newUpdate={this.state.newUpdate} checkForUpdates={this.checkUpToDate} preferences={this.state.preferences} onPreferenceUpdate={this.updatePreference}/>
@@ -281,7 +290,10 @@ class App extends Component {
             }
         }));
         window.require("electron").remote.getGlobal('config')[id] = val;
-        window.require("electron").remote.getGlobal('saveConfig')();
+        window.require("electron").remote.getGlobal('updateConfig')(id, val);
+        if (id === "styleChosen"){
+            this.pushNotification("restartForChanges", "You must restart the program for the changes to take effect", "info", true, undefined);
+        }
     };
 
     checkUpToDate = async () => {
