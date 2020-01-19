@@ -158,9 +158,6 @@ def init_do(memory):
     if memory["instance_manager"].instance is None and not memory["instance_manager"].attach():
         time.sleep(0.5)
         return False
-    if not memory["instance_manager"].load_addresses(True):
-        time.sleep(0.5)
-        return False
     return True
 
 
@@ -170,9 +167,9 @@ state_init = State("init", on_entry=init_entry, do=init_do)
 # State: Menu =============================
 
 def menu_do(memory):
-    in_menu = memory["instance_manager"].get_value("in_menu", True) != 0
-    in_game = memory["instance_manager"].get_value("in_game", True) != 0
-    in_practice = memory["instance_manager"].get_value("in_practice", True) != 0
+    in_menu = memory["instance_manager"].get_value("in_menu") != 0
+    in_game = memory["instance_manager"].get_value("in_game") != 0
+    in_practice = memory["instance_manager"].get_value("in_practice") != 0
     return in_menu, in_game, in_practice
 
 
@@ -182,8 +179,6 @@ state_menu = State("menu", do=menu_do)
 # State: Pre-game =========================
 
 def pregame_do(memory):
-    if not memory["instance_manager"].load_addresses():
-        return False
     song_ini = utils.get_song_ini(memory["instance_manager"].get_value("path"))
     if song_ini is None:
         log_main.error("Couldn't retrieve song ini")
@@ -252,9 +247,9 @@ def game_do(memory):
     except WindowsError:
         log_main.error("Unexpected pointer change")
 
-    in_menu = memory["instance_manager"].get_value("in_menu", True) == 1
-    in_game = memory["instance_manager"].get_value("in_game", True) == 1
-    in_practice = memory["instance_manager"].get_value("in_practice", True) == 1
+    in_menu = memory["instance_manager"].get_value("in_menu") == 1
+    in_game = memory["instance_manager"].get_value("in_game") == 1
+    in_practice = memory["instance_manager"].get_value("in_practice") == 1
 
     if (not in_menu and in_game) and memory["previous_game_data"]["time"] > memory["game_data"].time:
         game_restart(memory)
@@ -284,10 +279,6 @@ def game_restart(memory):
         memory["game_data"] = GameData(logger=log_main)
         send_data(memory["game_data"].to_dict(), "game", "TRANSFER_GAME_DATA")
         send_single("gameRestart", "GAME_EVENT")
-    while not memory["instance_manager"].load_addresses() and not memory["instance_manager"].get_value("in_menu", True):
-        log_main.debug("Help! Stuck in a loop")
-        time.sleep(0.1)
-        pass
     memory["probe_reset"] = True
 
 
@@ -339,9 +330,9 @@ def ends_entry(memory, previous_state):
 
 
 def ends_do(memory):
-    in_menu = memory["instance_manager"].get_value("in_menu", True) != 0
-    in_game = memory["instance_manager"].get_value("in_game", True) != 0
-    in_practice = memory["instance_manager"].get_value("in_practice", True) != 0
+    in_menu = memory["instance_manager"].get_value("in_menu") != 0
+    in_game = memory["instance_manager"].get_value("in_game") != 0
+    in_practice = memory["instance_manager"].get_value("in_practice") != 0
     return in_menu, in_game, in_practice
 
 
@@ -363,9 +354,9 @@ state_endscreen = State("endscreen", on_entry=ends_entry, do=ends_do, on_exit=en
 # State: Practice =========================
 
 def practice_do(memory):
-    in_menu = memory["instance_manager"].get_value("in_menu", True) != 0
-    in_game = memory["instance_manager"].get_value("in_game", True) != 0
-    in_practice = memory["instance_manager"].get_value("in_practice", True) != 0
+    in_menu = memory["instance_manager"].get_value("in_menu") != 0
+    in_game = memory["instance_manager"].get_value("in_game") != 0
+    in_practice = memory["instance_manager"].get_value("in_practice") != 0
     return in_menu, in_game, in_practice
 
 

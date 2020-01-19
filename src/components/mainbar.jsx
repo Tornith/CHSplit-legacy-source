@@ -8,7 +8,7 @@ class Mainbar extends Component {
         return (
             <main className={this.getOpened(this.props.sidebarOpened)} onClick={this.props.onSidebarDefocus}>
                 <NotificationBar notifications={this.props.notifications}/>
-                {((this.props.renderState === "game" && this.props.song != null && this.props.game != null) || (this.props.renderState === "endscreen")) &&
+                {(((this.props.renderState === "game" || this.props.renderState === "endscreen") && this.props.song != null && this.props.game != null)) &&
                     <React.Fragment>
                         <SongInfo song={this.props.song} game={this.props.game} preferences={this.props.preferences} />
                         <Sections game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
