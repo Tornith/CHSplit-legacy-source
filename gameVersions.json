@@ -1,14 +1,14 @@
 [ 
-{ 
-"label":"v23.2.2",
-"value":"23_2_2"
-},
-{ 
-"label":"test",
-"value":"test"
-},
- 
-"label":"test2",
-"value":"test2"
-}
+  {
+  "label":"v23.2.2",
+  "value":"23_2_2"
+  },
+  {
+  "label":"test",
+  "value":"test"
+  },
+  {
+  "label":"test2",
+  "value":"test2"
+  }
 ]
