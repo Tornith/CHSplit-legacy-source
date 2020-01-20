@@ -2,4 +2,4 @@
 
 A tool to help with scoring in Clone Hero
 
-*I should add a proper readme later on*
+Track progress at the public [Trello page](https://trello.com/b/bgwuqQQ4/chsplit)
