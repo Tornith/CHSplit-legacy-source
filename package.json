@@ -32,7 +32,7 @@
   "build": {
     "appId": "com.tornith.chsplit",
     "productName": "CHSplit",
-    "buildVersion": "0.1.1",
+    "buildVersion": "0.2.0",
     "files": [
       "pydist/**/*",
       "build/**/*",
