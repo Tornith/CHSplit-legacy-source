@@ -66,4 +66,7 @@
     --notification-update-background: linear-gradient(0deg, #36d985, #40ff9f 50%, #36d985);
 
     --small-viewport: calc(var(--panel-score-max-width) * 2);
+
+    --text-warning-color: rgb(255, 92, 64);
+    --text-warning-weight: 600;
 }

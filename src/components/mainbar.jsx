@@ -26,7 +26,7 @@ class Mainbar extends Component {
                 }
                 {this.props.renderState === "practice" &&
                 <div className="menu-msg">
-                    <h2>Uh oh!</h2> <p>CHSplit can't do shit while you're in practice! Sorry...</p>
+                    <h2>Uh oh!</h2> <p>CHSplit can't track your progress yet while you're in practice! Sorry...</p>
                 </div>
                 }
             </main>

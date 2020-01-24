@@ -650,6 +650,17 @@ main.sidebarOpened::after{
 
 .input-wrapper.list-sync .input-inner{ display: flex; align-items: flex-end; }
 
+.input-inner{
+    margin-top: 0.5em;
+}
+
+.input-inner *:first-child{
+    margin-top: 0
+}
+.input-inner *:last-child{
+    margin-bottom: 0
+}
+
 .input-checkbox, .input-radio{
     display: flex;
     justify-content: center;
@@ -764,4 +775,18 @@ main.sidebarOpened::after{
     border-width: 0.5px;
     border-style: solid;
     margin: 1.25em 0;
+}
+.restart-required::after {
+    content: "A restart is required for the changes to take effect";
+    color: var(--text-warning-color);
+    font-weight: var(--text-warning-weight);
+    height: auto;
+    max-height: 0;
+    overflow: hidden;
+    transition: 0.25s;
+    padding-top: 0;
+}
+.restart-required.changed::after{
+    max-height: 5em;
+    padding-top: 0.5em;
 }

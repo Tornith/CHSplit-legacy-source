@@ -200,6 +200,8 @@ class App extends Component {
             newMap.get(parseInt(position)).sectionScore = score;
         }
         newMap.forEach((value => {value.active = false}));
+        console.log(activeSection);
+        console.log(this.state.song.sections[0][0]);
         newMap.get(activeSection !== undefined ? activeSection : this.state.song.sections[0][0]).active = true;
         if (this.state.sectionHolder !== newMap)
             this.setState({sectionHolder: newMap});
@@ -291,16 +293,13 @@ class App extends Component {
         }));
         window.require("electron").remote.getGlobal('config')[id] = val;
         window.require("electron").remote.getGlobal('updateConfig')(id, val);
-        if (id === "styleChosen"){
-            this.pushNotification("restartForChanges", "You must restart the program for the changes to take effect", "info", true, undefined);
-        }
     };
 
     checkUpToDate = async () => {
-        let uri = 'https://chsplit.tornith.cz/version.json';
+        let uri = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/version.json';
         let h = new Headers();
         h.append('Accept', 'application/json');
-        let req = new Request(uri, {method: "POST", headers: h, mode: "cors"});
+        let req = new Request(uri, {method: "GET", headers: h});
 
         await fetch(req).then((response) => {
             if (response.ok){
@@ -311,7 +310,9 @@ class App extends Component {
             }
         }).then(data => {
             const parsed = JSON.parse(JSON.stringify(data));
-            const result = (this.compareVersions(appInfo.version, parsed.version) > 0);
+            const hierarchy = ["dev", "alpha", "beta", "rc"];
+            const newest = (hierarchy.some(val => appInfo.version.includes(val))) ? parsed.version : parsed.stableVersion;
+            const result = (compareVersions(appInfo.version, newest) < 0);
             this.setState({newUpdate: result});
             return result;
         }).catch((e) => {
@@ -319,42 +320,47 @@ class App extends Component {
             return false;
         });
     };
-
-    compareVersions(ver1, ver2){
-        const regex = new RegExp(`[0-9]+(\\.[0-9]+)*(([ab]|(rc))?\\d*)?`, 'gi');
-        if (!ver1.match(regex) || !ver2.match(regex)) return false;
-        ver1 = ver1.replace("a", "|1.").replace("b", "|2.").replace("rc", "|3.").replace(new RegExp(`((\\.0)+$)|((\\.0)+(?=\\|))`), "");
-        ver2 = ver2.replace("a", "|1.").replace("b", "|2.").replace("rc", "|3.").replace(new RegExp(`((\\.0)+$)|((\\.0)+(?=\\|))`), "");
-        const splitVer1 = ver1.split('|')[0].split('.');
-        const splitVer2 = ver2.split('|')[0].split('.');
-        const cmpVersion = this.compareArrays(splitVer1, splitVer2);
-        if (cmpVersion !== 0) return cmpVersion;
-        if (ver1.split('|').length === 2 && ver2.split('|').length === 2){
-            const subver1 = ver1.split('|')[1].split('.').filter(x => (x !== ""));
-            const subver2 = ver2.split('|')[1].split('.').filter(x => (x !== ""));
-            const cmpSubVersion = this.compareArrays(subver1, subver2);
-            if (cmpSubVersion !== 0) return cmpSubVersion;
-        }
-        else if (ver1.split('|').length !== ver2.split('|').length){
-            return (ver1.split('|').length > ver2.split('|').length) ? 1 : -1;
-        }
-        else return 0;
-    }
-
-    compareArrays(arr1, arr2){
-        for (let i = 0; i < Math.min(arr1.length, arr2.length); i++){
-            let cmp = parseInt(arr2[i]) - parseInt(arr1[i]);
-            if (cmp !== 0) return cmp;
-        }
-        if (arr1.length !== arr2.length){
-            return (arr1.length < arr2.length) ? 1 : -1;
-        }
-        return 0;
-    }
 }
 
+const compareVersions = (a, b) => {
+    const hierarchy = ["dev", "alpha", "beta", "rc"];
+    const regex = new RegExp(`(\\d+)(\\.\\d+)+((-)([(` + hierarchy.join(")(") + `)]+)(\\.\d+)*)?`, 'gi');
+    if (!a.match(regex) || !b.match(regex)) return undefined;
+    if (a === b) return 0;
+
+    const softParseInt = (int) => isNaN(parseInt(int)) ? int : parseInt(int);
+    const splitVersionArray = (arr) => arr.split('-').map(value => value.split('.'))
+        .map((value) => value.map(value => softParseInt(value)));
+    const arrCmp = (arr1, arr2) => {
+        const modArr1 = arr1.concat(Array(Math.max(0, arr2.length - arr1.length)).fill(0));
+        const modArr2 = arr2.concat(Array(Math.max(0, arr1.length - arr2.length)).fill(0));
+        return modArr1.map((val, index) =>
+            (parseInt(val) - parseInt(modArr2[index]))
+        ).find(value => value !== 0) || 0;
+    };
+
+    const ver1 = splitVersionArray(a);
+    const ver2 = splitVersionArray(b);
+
+    const baseVer = arrCmp(ver1[0], ver2[0]);
+
+    if (baseVer === 0 && (ver1.length > 1 || ver2.length > 1)){
+        if (ver1.length !== ver2.length) return (ver1.length < ver2.length) ? 1 : -1;
+        else {
+            const subVerPhase = hierarchy.indexOf(ver1[1][0]) - hierarchy.indexOf(ver2[1][0]);
+            if (subVerPhase !== 0) return subVerPhase;
+            else {
+                ver1[1].shift();
+                ver2[1].shift();
+                return arrCmp(ver1[1], ver2[1]);
+            }
+        }
+    }
+    return baseVer;
+};
+
 const getNewVersion = () => {
-    const newVersionURL = "https://chsplit.tornith.cz/get_version.php?version=newest";
+    const newVersionURL = "https://github.com/Tornith/CHSplit/releases/latest";
     open(newVersionURL);
 };
 

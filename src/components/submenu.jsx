@@ -21,7 +21,7 @@ class SubmenuOptions extends Component {
             <div className={"submenu-content " + (this.props.opened ? "opened" : "")}>
                 <h2>Options</h2>
                 <div className="submenu-subcontent">
-                    <ListGroupAJAX id={"selectedGameVersion"} label={"Game version:"} getOptions={this.getGameVersions} value={this.props.preferences.selectedGameVersion} onInputUpdate={this.props.onPreferenceUpdate} />
+                    <ListGroupAJAX id={"selectedGameVersion"} label={"Game version:"} getOptions={this.getGameVersions} value={this.props.preferences.selectedGameVersion} onInputUpdate={this.props.onPreferenceUpdate} restartRequired/>
                     <hr/>
                     <Checkbox id={"alwaysOnTop"} label={"Always on top"} value={this.props.preferences.alwaysOnTop} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showActiveSectionDifference"} label={"Always show active section difference"} value={this.props.preferences.showActiveSectionDifference} onInputUpdate={this.props.onPreferenceUpdate} />
@@ -33,17 +33,17 @@ class SubmenuOptions extends Component {
                     <RadioGroup id={"styleChosen"} label={"Application theme:"} options={[
                         {label:"Light theme", value:"defaultLight"},
                         {label:"Dark theme", value:"defaultDark"}]}
-                                value={this.props.preferences.styleChosen} onInputUpdate={this.props.onPreferenceUpdate} />
+                                value={this.props.preferences.styleChosen} onInputUpdate={this.props.onPreferenceUpdate} restartRequired/>
                 </div>
             </div>
         );
     }
 
     getGameVersions = async () =>{
-        let uri = 'https://chsplit.tornith.cz/gameVersions.json';
+        let uri = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/gameVersions.json';
         let h = new Headers();
         h.append('Accept', 'application/json');
-        let req = new Request(uri, {method: "POST", headers: h, mode: "cors"});
+        let req = new Request(uri, {method: "GET", headers: h});
 
         return new Promise((resolve, reject) => {
             fetch(req).then((response) => {

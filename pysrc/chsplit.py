@@ -145,11 +145,21 @@ def init_entry(memory, previous_state):
     if not os.path.isdir(args.path + '/splits'):
         os.makedirs(args.path + '/splits')
         log_main.info("Created splits folder")
-    # offsets = utils.load_ini_file(args.path + '/offsets.' + memory["config"]["config"]["game_version"] + '.ini')
-    offsets = utils.load_yaml_file(args.path + '/offsets.' + memory["config"]["selectedGameVersion"] + '.yml')
+    if not os.path.isdir(args.path + '/offsets'):
+        os.makedirs(args.path + '/offsets')
+        log_main.info("Created offsets folder")
+    offsets_path = args.path + 'offsets/offsets.' + memory["config"]["selectedGameVersion"] + '.yml'
+    log_main.debug(offsets_path)
+    offsets = utils.load_yaml_file(offsets_path)
     if offsets is None:
-        log_main.critical("Offset file not found")
-        raise Exception("Offset file not found")
+        log_main.info("Offset file not downloaded, downloading for game version: {}"
+                      .format(memory["config"]["selectedGameVersion"]))
+        utils.get_offset_file_ajax(memory["config"]["selectedGameVersion"], offsets_path)
+        offsets = utils.load_yaml_file(offsets_path)
+        if offsets is None:
+            log_main.critical("Offset file not found; Invalid game version: {}"
+                              .format(memory["config"]["selectedGameVersion"]))
+            raise Exception("Offset file not found")
     memory["offsets"] = offsets
     memory["instance_manager"] = InstanceManager(memory["offsets"], logger=log_main)
 
@@ -405,9 +415,6 @@ def main_loop(fsm):
 # Main ====================================
 
 if __name__ == '__main__':
-    if not re.match('\d+(_\d+)*', args.config["selectedGameVersion"]):
-        log_main.critical("Invalid config value of selectedGameVersion")
-        raise ValueError("Invalid config value of selectedGameVersion")
     if args.config["debugMode"]:
         log_main.setLevel(logging.DEBUG)
         log_main.addHandler(logging.StreamHandler(sys.stdout))

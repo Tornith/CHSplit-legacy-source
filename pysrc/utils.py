@@ -2,6 +2,7 @@ import mido
 import mido.messages.checks
 import re
 import configparser
+import urllib2
 from yaml import Loader, Dumper, load, dump
 
 
@@ -71,6 +72,18 @@ def load_yaml_file(name):
             return load(yaml_file, Loader=Loader)
     except IOError:
         return None
+
+
+def get_offset_file_ajax(version, path):
+    url = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/offsets/offsets.{}.yml'.format(version)
+    offset_data = urllib2.urlopen(url)
+    try:
+        with open(path, 'wb') as f:
+            f.write(offset_data.read())
+            f.flush()
+            return True
+    except urllib2.HTTPError:
+        return False
 
 
 def reverse_insort(a, x, lo=0, hi=None):

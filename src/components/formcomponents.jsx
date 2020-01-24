@@ -8,14 +8,18 @@ class FormComponent extends PureComponent{
     static defaultProps = {
         value: undefined,
         id: "invalidID",
-        label: "Missing label"
+        label: "Missing label",
+        restartRequired: false
     };
 }
 
 export class Checkbox extends FormComponent {
+    state = {
+        changed: false
+    };
     render() {
         return (
-            <section className="input-wrapper checkbox single horizontal">
+            <section className={"input-wrapper checkbox single horizontal" + (this.props.restartRequired ? " restart-required" : "") + (this.state.changed ? " changed" : "")}>
                 <div className={"input-checkbox" + (this.props.value ? " selected" : "")} onClick={this.action}>
                     <img src={iconCheck} alt={this.props.value ? "Yes" : "No"} />
                 </div>
@@ -25,13 +29,17 @@ export class Checkbox extends FormComponent {
     }
     action = () => {
         this.props.onInputUpdate(this.props.id, !this.props.value);
+        this.setState({changed: true});
     }
 }
 
 export class RadioGroup extends FormComponent {
+    state = {
+        changed: false
+    };
     render() {
         return (
-            <section className="input-wrapper radio-group vertical">
+            <section className={"input-wrapper radio-group vertical" + (this.props.restartRequired ? " restart-required" : "") + (this.state.changed ? " changed" : "")}>
                 <label>{this.props.label}</label>
                 <section className="input-inner">
                     {this.props.options.map((option, index) => {
@@ -44,19 +52,24 @@ export class RadioGroup extends FormComponent {
 
     selectOption = (val) => {
         this.props.onInputUpdate(this.props.id, val);
+        this.setState({changed: true});
     };
 }
 
 class Radio extends PureComponent {
     render() {
         return (
-            <section className="input-wrapper radio inner horizontal">
-                <div className={"input-radio" + (this.props.selected ? " selected" : "")} onClick={() => {this.props.onSelected(this.props.value)}}>
+            <section className={"input-wrapper radio inner horizontal"}>
+                <div className={"input-radio" + (this.props.selected ? " selected" : "")} onClick={this.action}>
                     <img src={iconRadio} alt={this.props.selected ? "Yes" : "No"} />
                 </div>
                 <label>{this.props.label}</label>
             </section>
         );
+    }
+
+    action = () => {
+        this.props.onSelected(this.props.value);
     }
 }
 
@@ -64,7 +77,8 @@ export class ListGroup extends FormComponent {
     constructor(props){
         super(props);
         this.state = {
-            opened: false
+            opened: false,
+            changed: false
         };
         this.setWrapperRef = this.setWrapperRef.bind(this);
         this.handleClickOutside = this.handleClickOutside.bind(this);
@@ -90,7 +104,7 @@ export class ListGroup extends FormComponent {
 
     render() {
         return (
-            <section className="input-wrapper list vertical">
+            <section className={"input-wrapper list vertical" + (this.props.restartRequired ? " restart-required" : "") + (this.state.changed ? " changed" : "")}>
                 <label>{this.props.label}</label>
                 <section ref={this.setWrapperRef} className="input-inner">
                     <div className="input-list-wrapper">
@@ -111,7 +125,7 @@ export class ListGroup extends FormComponent {
 
     selectOption = (val) => {
         this.props.onInputUpdate(this.props.id, val);
-        this.setState({opened: false});
+        this.setState({opened: false, changed: true});
     };
 }
 
@@ -129,7 +143,8 @@ export class ListGroupAJAX extends ListGroup {
     constructor(props){
         super(props);
         this.state = {
-            options: undefined
+            options: undefined,
+            changed: false
         }
     }
 
@@ -142,7 +157,7 @@ export class ListGroupAJAX extends ListGroup {
 
     render() {
         return (
-            <section className="input-wrapper list-sync vertical">
+            <section className={"input-wrapper list-sync vertical" + (this.props.restartRequired ? " restart-required" : "") + (this.state.changed ? " changed" : "")}>
                 <label>{this.props.label}</label>
                 <section className="input-inner">
                     <div className="input-list-wrapper" ref={this.setWrapperRef}>
@@ -158,7 +173,6 @@ export class ListGroupAJAX extends ListGroup {
                             })}
                         </div> : ""}
                     </div>
-                    <button className={"input-list-refresh"}><img src={iconRefresh} alt="Refresh" /></button>
                 </section>
             </section>
         );
