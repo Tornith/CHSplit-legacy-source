@@ -4,14 +4,16 @@ class SongInfo extends PureComponent {
     render() {
         return (
             <React.Fragment>
-                <div className="panel-song" id="panel-song">
+                <div className={"panel-song" + (this.props.preferences.hideTotalScore ? " small" : "")} id="panel-song">
                     <div className="panel-info">
                         <span className="song-name">{this.props.song.name + this.formatSpeed(this.props.song.speed) + this.formatDifficulty(this.props.song.difficulty) + this.formatInstrument(this.props.song.instrument) + this.formatModifiersString(this.props.song.modifiers)}</span>
-                        <div className="spt"/>
+                        <div className={"spt" + (this.props.preferences.hideTotalScore ? " hidden" : "")} />
                     </div>
-                    <div className="panel-score">
+                    <div className={"panel-score" + (this.props.preferences.hideTotalScore ? " hidden" : "")}>
                         <span className="total-score">{this.formatNumbers(this.props.game.score)}</span>
-                        <span className={"total-score-difference " + ((this.props.game.score >= 0) ? "positive" : "negative")}>{this.formatNumbers(this.props.game.score, true)}</span>
+                        {this.props.sectionHolder.get(this.props.game.activeSection) !== undefined && this.props.sectionHolder.get(this.props.game.activeSection).pbScore !== null && <span className={"total-score-difference " + ((this.props.game.score - (this.props.sectionHolder.get(this.props.game.activeSection).pbScore) >= 0) ? "positive" : "negative")}>{
+                            this.formatNumbers(this.props.game.score - (this.props.sectionHolder.get(this.props.game.activeSection).pbScore), true)
+                        }</span>}
                     </div>
                 </div>
                 <div className={"panel-progress" + (this.props.preferences.showSongProgressBar ? "" : " hidden")} id="panel-progress">

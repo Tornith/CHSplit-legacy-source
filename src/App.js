@@ -46,6 +46,11 @@ class App extends Component {
             this.setupListeners();
             this.retrieveAllData();
         });
+        // On window close shutdown the server
+        window.addEventListener("beforeunload", (ev) => {
+            ev.preventDefault();
+            this.state.socket.emit("SHUTDOWN");
+        });
     }
 
     async initSocket(){
@@ -200,8 +205,8 @@ class App extends Component {
             newMap.get(parseInt(position)).sectionScore = score;
         }
         newMap.forEach((value => {value.active = false}));
-        console.log(activeSection);
-        console.log(this.state.song.sections[0][0]);
+        /*console.log(activeSection);
+        console.log(this.state.song.sections[0][0]);*/
         newMap.get(activeSection !== undefined ? activeSection : this.state.song.sections[0][0]).active = true;
         if (this.state.sectionHolder !== newMap)
             this.setState({sectionHolder: newMap});
@@ -244,8 +249,8 @@ class App extends Component {
     render() {
         return (
             <React.Fragment>
-                <Header />
-                <section className={"app-body" + (this.state.preferences.showAnimations ? "" : " no-anim")}>
+                <Header onKeyDown={this.keypressClose}/>
+                <section className={"app-body" + (this.state.preferences.showAnimations ? "" : " no-anim")} onKeyDown={this.keypressClose}>
                     <Sidebar opened={this.state.sidebarOpened}
                              openedSubmenu={this.state.submenuOpenedType}
                              onToggle={this.handleToggleSidebar}
@@ -262,7 +267,7 @@ class App extends Component {
                              preferences={this.state.preferences}
                     />
                 </section>
-                <Submenu openedSubmenu={this.state.submenuOpenedType} newUpdate={this.state.newUpdate} checkForUpdates={this.checkUpToDate} preferences={this.state.preferences} onPreferenceUpdate={this.updatePreference}/>
+                <Submenu openedSubmenu={this.state.submenuOpenedType} newUpdate={this.state.newUpdate} checkForUpdates={this.checkUpToDate} preferences={this.state.preferences} onPreferenceUpdate={this.updatePreference} onKeyDown={this.keypressClose}/>
             </React.Fragment>
         );
     }
@@ -319,6 +324,10 @@ class App extends Component {
             console.error(e);
             return false;
         });
+    };
+
+    keypressClose = (event) => {
+        if(event.keyCode === 27 && this.state.sidebarOpened) this.handleToggleSidebar()
     };
 }
 

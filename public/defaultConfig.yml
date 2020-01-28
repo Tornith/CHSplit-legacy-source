@@ -4,7 +4,9 @@ config:
   alwaysOnTop: false
   showActiveSectionScore: false
   showActiveSectionDifference: false
+  lastSectionAnchored: true
   showSongProgressBar: true
+  hideTotalScore: false
   showAnimations: true
   enableAutoscroll: true
   styleChosen: defaultLight

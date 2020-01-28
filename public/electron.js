@@ -12,6 +12,7 @@ const rq = require('request-promise');
 const unhandled = require('electron-unhandled');
 const fs = require('fs');
 const yaml = require('js-yaml');
+const windowStateKeeper = require('electron-window-state');
 
 const portable_path = process.env.PORTABLE_EXECUTABLE_DIR;
 const exec_path = (portable_path === undefined) ? path.join(__dirname, '../') : portable_path;
@@ -52,13 +53,15 @@ const createPyProc = (config) => {
     let script = getScriptPath();
     let port = '' + selectPort();
     const config_str = JSON.stringify(config);
+    config_str.replace("\"", "'");
     if (guessPackaged()) {
         pyProc = require('child_process').execFile(script, [exec_path, port, config_str], function(err, stdout, stderr) {
             console.log(stdout);
+            console.log(stderr);
         });
         console.log("packaged");
         pyProc.on('exit', () => {
-            console.log("exitiing child rpcoes");
+            console.log("Exiting child process");
         })
     } else {
         pyProc = require('child_process').spawn('python', [script, exec_path, port, config_str]);
@@ -100,7 +103,19 @@ let mainWindow;
 function createWindow(config) {
     app.commandLine.appendSwitch('high-dpi-support', 'true');
     app.commandLine.appendSwitch('force-device-scale-factor', '1');
-    mainWindow = new BrowserWindow({width: 500, height: 640, frame: false, webPreferences: { nodeIntegration: true }});
+    app.commandLine.appendSwitch ("disable-http-cache");
+
+    let prevWindowState = windowStateKeeper({
+        defaultWidth: 500,
+        defaultHeight: 640
+    });
+
+    mainWindow = new BrowserWindow({
+        x: prevWindowState.x,
+        y: prevWindowState.y,
+        width: prevWindowState.width,
+        height: prevWindowState.height,
+        frame: false, webPreferences: { nodeIntegration: true }});
     if (config.alwaysOnTop){
         mainWindow.setAlwaysOnTop(true, "floating", 1);
         mainWindow.setVisibleOnAllWorkspaces(true);
@@ -112,11 +127,12 @@ function createWindow(config) {
         slashes: true
     }));*/
     mainWindow.on('closed', () => mainWindow = null);
+    prevWindowState.manage(mainWindow);
 }
 
 function loadConfig(){
-    const defaultPreferences = yaml.safeLoad(fs.readFileSync(path.join(__dirname, "..", "src", "defaultConfig.yml"), 'utf8')).config;
-    const configPath = path.join(__dirname, "..", "config.yml");
+    const defaultPreferences = yaml.safeLoad(fs.readFileSync(path.join(__dirname, "defaultConfig.yml"), 'utf8')).config;
+    const configPath = path.join(exec_path, "config.yml");
     if (fs.existsSync(configPath)){
         try{
             let yml = yaml.safeLoad(fs.readFileSync(configPath, 'utf8'));
@@ -166,7 +182,7 @@ function updateConfig(id, val){
             mainWindow.setVisibleOnAllWorkspaces(false);
         }
     }
-    writeConfigFile(config, path.join(__dirname, "..", "config.yml"));
+    writeConfigFile(config, path.join(exec_path, "config.yml"));
 }
 
 app.on('ready', () =>{

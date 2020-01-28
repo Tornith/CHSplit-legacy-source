@@ -1,5 +1,5 @@
 ::-webkit-scrollbar {
-    width: 10px;
+    width: var(--scrollbar-width);
 }
 
 ::-webkit-scrollbar-track {
@@ -14,6 +14,10 @@
 
 .no-anim, .no-anim *, .no-anim main::after{
     transition: none !important;
+}
+
+.hidden{
+    display: none !important;
 }
 
 @keyframes MOVE-BG {
@@ -346,6 +350,7 @@ main{
     height: 100%;
     background: var(--mainbar-background);
     display: flex;
+    justify-content: center;
     flex-direction: column;
 }
 
@@ -381,6 +386,11 @@ main.sidebarOpened::after{
     padding: 0 var(--panel-song-padding);
     color: var(--panel-song-text-color);
     width: 100%;
+}
+
+.panel-song.small{
+    height: auto;
+    padding: 0.5em;
 }
 
 .panel-info{
@@ -437,10 +447,6 @@ main.sidebarOpened::after{
 .panel-progress{
     text-align: right;
     margin-top: calc(0px - var(--panel-progress-bar-height));
-}
-
-.panel-progress.hidden{
-    display: none;
 }
 
 .song-time{
@@ -508,6 +514,11 @@ main.sidebarOpened::after{
     background: var(--section-background-odd);
     scroll-behavior: smooth;
     position: relative;
+    width: 100%;
+}
+
+.panel-sections.last-anchored{
+    padding-bottom: calc(var(--section-height) + var(--section-border-anchor-width));
 }
 
 .no-anim .panel-sections{
@@ -518,9 +529,20 @@ main.sidebarOpened::after{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 16px;
+    height: var(--section-height);
+    padding: 0 16px;
     color: var(--section-font-color);
     transition: 0.25s;
+}
+
+.panel-sections.last-anchored .section:last-of-type{
+    height: calc(var(--section-height) + var(--section-border-anchor-width));
+    position: fixed;
+    bottom: 0;
+    left: var(--sidebar-width-closed);
+    right: var(--scrollbar-width);
+    background: var(--section-background-anchor) !important;
+    border-top: var(--section-border-anchor-width) solid var(--section-border-anchor-color);
 }
 
 .panel-sections .section > .section-name{
@@ -558,14 +580,18 @@ main.sidebarOpened::after{
 
 .menu-msg{
     align-self: center;
-    width: 400px;
+    max-width: 400px;
     text-align: center;
-    margin: 120px auto 0;
     color: var(--mainbar-message-color);
+    padding-bottom: var(--header-height);
 }
 
 .menu-msg h2{
+    margin-top: 0;
     font-size: 24pt;
+}
+.menu-msg p{
+    margin-bottom: 0;
 }
 
 .panel-sections .section-diff.positive{ color: var(--section-font-color-positive); }
@@ -623,9 +649,6 @@ main.sidebarOpened::after{
     opacity: 0.85;
 }
 
-.notification .notif-close.hidden{
-    display: none;
-}
 .notification object{
     pointer-events: none;
 }
@@ -740,7 +763,7 @@ main.sidebarOpened::after{
     position: absolute;
     transition: height 0.075s, opacity 0.075s;
 }
-.input-list-dropdown.hidden{
+.input-list-dropdown.collapsed{
     pointer-events: none;
     user-select: none;
     opacity: 0;

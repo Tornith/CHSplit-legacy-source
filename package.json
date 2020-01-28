@@ -7,6 +7,8 @@
   "dependencies": {
     "@welldone-software/why-did-you-render": "^3.3.9",
     "electron-is-dev": "^1.1.0",
+    "electron-window-state": "^5.0.3",
+    "electron-unhandled": "latest",
     "js-yaml": "^3.13.1",
     "open": "^7.0.0",
     "ps-tree": "^1.2.0",
@@ -15,7 +17,8 @@
     "react-scripts": "3.2.0",
     "request-promise": "^4.2.5",
     "socket.io": "^2.3.0",
-    "socket.io-client": "^2.3.0"
+    "socket.io-client": "^2.3.0",
+    "greenlet": "^1.1.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -25,7 +28,7 @@
     "electron-dev": "concurrently \"yarn start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack": "electron-builder build --win portable",
     "preelectron-pack": "yarn build",
-    "py-build": "pyinstaller ./pysrc/CHSplit.py -y --onefile --noconsole --name CHSplit --icon ./public/favicon.ico --distpath ./pydist --workpath ./pybuild",
+    "py-build": "pyinstaller ./pysrc/CHSplit.py -y --hidden-import engineio.async_drivers.gevent --noconsole --onefile --name CHSplit --icon ./public/favicon.ico --distpath ./pydist --workpath ./pybuild",
     "build-dist": "yarn py-build && yarn electron-pack"
   },
   "main": "public/electron.js",
@@ -68,7 +71,6 @@
     "concurrently": "^5.0.0",
     "electron": "^7.1.1",
     "electron-builder": "^21.2.0",
-    "electron-unhandled": "latest",
     "wait-on": "^3.3.0"
   }
 }

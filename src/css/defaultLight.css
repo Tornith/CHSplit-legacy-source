@@ -44,8 +44,10 @@
     --panel-progress-bar-animation-translate: 37px;
     --panel-progress-bar-animation-speed: 3s;
 
+    --section-height: 2.25em;
     --section-background-odd: rgba(90, 90, 90, 1);
     --section-background-even: rgba(75, 75, 75, 1);
+    --section-background-anchor: rgba(100, 100, 100, 1);
     --section-background-active: rgba(150, 150, 150, 1);
     --section-font-color: #fff;
     --section-font-color-positive: rgba(64, 166, 255, 0.95);
@@ -56,9 +58,12 @@
     --section-old-score-color: rgba(255, 255, 255, 0.33);
     --section-border-active-width: 0 4px 0 4px;
     --section-border-active-color: #0084ff;
+    --section-border-anchor-width: 4px;
+    --section-border-anchor-color: #202020;
 
     --scrollbar-background: rgba(0, 0, 0, 0.25);
     --scrollbar-color: rgba(255, 255, 255, 0.9);
+    --scrollbar-width: 10px;
 
     --notification-info-background: linear-gradient(0deg, #368ad9, #40a3ff 50%, #368ad9);
     --notification-warning-background: linear-gradient(0deg, #d9be36, #ffe042 50%, #d9be36);

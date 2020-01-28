@@ -7,7 +7,7 @@ const scrollToSection = (elem) => document.getElementById('panel-sections')
 class Sections extends PureComponent {
     render() {
         return (
-            <div className="panel-sections" id="panel-sections">
+            <div className={"panel-sections" + (this.props.preferences.lastSectionAnchored ? " last-anchored" : "")} id="panel-sections">
                 { Array.from(this.props.sectionHolder, ([key, value]) => value).map(section => (
                     <Section key={section.time}
                              time={section.time}

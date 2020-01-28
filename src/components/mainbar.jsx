@@ -10,7 +10,7 @@ class Mainbar extends Component {
                 <NotificationBar notifications={this.props.notifications}/>
                 {(((this.props.renderState === "game" || this.props.renderState === "endscreen") && this.props.song != null && this.props.game != null)) &&
                     <React.Fragment>
-                        <SongInfo song={this.props.song} game={this.props.game} preferences={this.props.preferences} />
+                        <SongInfo song={this.props.song} game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
                         <Sections game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
                     </React.Fragment>
                 }
@@ -20,14 +20,14 @@ class Mainbar extends Component {
                     </div>
                 }
                 {this.props.renderState === "init" &&
-                <div className="menu-msg">
-                    <h2>Launch the game!</h2> <p>CHSplit will automatically detect that you've launched the game!</p>
-                </div>
+                    <div className="menu-msg">
+                        <h2>Launch the game!</h2> <p>CHSplit will automatically detect that you've launched the game!</p>
+                    </div>
                 }
                 {this.props.renderState === "practice" &&
-                <div className="menu-msg">
-                    <h2>Uh oh!</h2> <p>CHSplit can't track your progress yet while you're in practice! Sorry...</p>
-                </div>
+                    <div className="menu-msg">
+                        <h2>Uh oh!</h2> <p>CHSplit can't track your progress yet while you're in practice! Sorry...</p>
+                    </div>
                 }
             </main>
         );

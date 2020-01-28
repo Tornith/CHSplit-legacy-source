@@ -26,7 +26,9 @@ class SubmenuOptions extends Component {
                     <Checkbox id={"alwaysOnTop"} label={"Always on top"} value={this.props.preferences.alwaysOnTop} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showActiveSectionDifference"} label={"Always show active section difference"} value={this.props.preferences.showActiveSectionDifference} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showActiveSectionScore"} label={"Show current score in an active section"} value={this.props.preferences.showActiveSectionScore} onInputUpdate={this.props.onPreferenceUpdate} />
+                    <Checkbox id={"lastSectionAnchored"} label={"Anchor last section to the bottom"} value={this.props.preferences.lastSectionAnchored} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showSongProgressBar"} label={"Show song's progress bar"} value={this.props.preferences.showSongProgressBar} onInputUpdate={this.props.onPreferenceUpdate} />
+                    <Checkbox id={"hideTotalScore"} label={"Hide the total score panel"} value={this.props.preferences.hideTotalScore} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showAnimations"} label={"Show animations"} value={this.props.preferences.showAnimations} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"enableAutoscroll"} label={"Autoscroll to active section"} value={this.props.preferences.enableAutoscroll} onInputUpdate={this.props.onPreferenceUpdate} />
                     <hr/>

@@ -1,3 +1,5 @@
+import tempfile
+
 import mido
 import mido.messages.checks
 import re
@@ -55,7 +57,13 @@ def get_midi_sections(file_path):
 
 def get_song_ini(file_path):
     song_info = configparser.RawConfigParser()
-    song_info.read(file_path + '/song.ini')
+    try:
+        song_info.read(file_path + "/song.ini", encoding='utf-8')
+    except configparser.MissingSectionHeaderError:
+        try:
+            song_info.read(file_path + "/song.ini", encoding='utf-8-sig')
+        except configparser.MissingSectionHeaderError:
+            return None
     song_info = {k.lower(): v for k, v in song_info.items()}
     return song_info if song_info else None
 

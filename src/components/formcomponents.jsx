@@ -112,7 +112,7 @@ export class ListGroup extends FormComponent {
                             <div>{this.props.options.find(option => option.value === this.props.value).label}</div>
                             <img src={iconDropdown} alt={"Show all"} />
                         </div>
-                        <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " hidden")}>
+                        <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " collapsed")}>
                             {this.props.options.map((option, index) => {
                                 return <ListOption id={this.props.id + "_" + index} value={option.value} label={option.label} onSelected={this.selectOption} selected={this.props.value === option.value} />
                             })}
@@ -167,7 +167,7 @@ export class ListGroupAJAX extends ListGroup {
                             </div>
                             <img src={iconDropdown} alt={"Show all"} />
                         </div>
-                        {Array.isArray(this.state.options) ? <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " hidden")}>
+                        {Array.isArray(this.state.options) ? <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " collapsed")}>
                             {this.state.options.map((option, index) => {
                                 return <ListOption key={this.props.id + "_" + index} id={this.props.id + "_" + index} value={option.value} label={option.label} onSelected={this.selectOption} selected={this.props.value === option.value} />
                             })}

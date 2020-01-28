@@ -1,8 +1,8 @@
 import sys
 import threading
+from socketio import Server, WSGIApp
 from gevent import pywsgi, monkey
 from geventwebsocket.handler import WebSocketHandler
-from socketio import Server, WSGIApp
 from finitestatemachine import FSMWithMemory, State
 from instancemanager import InstanceManager
 from songdata import SongData
@@ -12,7 +12,6 @@ import utils
 import os
 import time
 import logging
-import re
 import json
 import argparse
 
@@ -29,7 +28,7 @@ def json_str(v):
     try:
         return json.loads(v)
     except ValueError:
-        print "Invalid config file:"
+        print "Invalid config file: {}".format(v)
         raise argparse.ArgumentTypeError('JSON string expected.')
 
 
@@ -68,7 +67,7 @@ log_main.addHandler(file_handler)
 
 # Flask ==================================
 
-sio = Server(async_mode='gevent', cors_allowed_origins="*")
+sio = Server(async_mode="gevent", cors_allowed_origins="*")
 app = WSGIApp(sio)
 
 log_flask = logging.getLogger('werkzeug')
@@ -148,7 +147,7 @@ def init_entry(memory, previous_state):
     if not os.path.isdir(args.path + '/offsets'):
         os.makedirs(args.path + '/offsets')
         log_main.info("Created offsets folder")
-    offsets_path = args.path + 'offsets/offsets.' + memory["config"]["selectedGameVersion"] + '.yml'
+    offsets_path = args.path + '/offsets/offsets.' + memory["config"]["selectedGameVersion"] + '.yml'
     log_main.debug(offsets_path)
     offsets = utils.load_yaml_file(offsets_path)
     if offsets is None:
