@@ -3,36 +3,36 @@
 
 # !!! IMPORTANT: The current version of CHSplit does *not* work with CHLauncher !!!
 
-CHSplit allows you to easily track your score progress throughout runs of your songs in Clone Hero. Inspired by [LiveSplit](https://livesplit.org/)  
+**CHSplit** allows you to easily track your score progress throughout runs of your songs in **Clone Hero**. Inspired by [LiveSplit](https://livesplit.org/).
 
 ## Features
 * **Difference with your personal best** - CHSplit remembers your previous runs of songs, compares your current run with your personal best and shows you the difference in each section.
 * **Automatic splitting** - CHSplit reads the song info and sections and splits fully automatically based on your playthrough.
-* **No need to overwrite any Clone Hero files** - CHSplit automatically detects an instance of Clone Hero and reads the values directly from the game
-* **Backwards compatibility** - Any CHSplit version will be compatible with any Clone Hero version (starting with v.23.2.2)
-* **Many new features soon!** - CHSplit is still early in development with a lot of planned features. You can track the development progress on the public [Trello page](https://trello.com/b/bgwuqQQ4/chsplit)
+* **No need to overwrite any Clone Hero files** - CHSplit automatically detects an instance of Clone Hero and reads the values directly from the game.
+* **Backwards compatibility** - Any CHSplit version will be compatible with any Clone Hero version (starting with v.23.2.2).
+* **Many new features soon!** - CHSplit is still early in development with a lot of planned features. You can track the development progress on the public [Trello page](https://trello.com/b/bgwuqQQ4/chsplit).
 
 ## Options
-CHSplit allows you to customize your experience with the program. By navigating to the menu in the top left of the program window you can open the side menu where you'll find the *Options* button. Here you'll find a variety of preferences to toggle on and off.
-* **Game version selector** - Here you have to specify what version of Clone Hero you're running. **You always have to select the correct version or CHSplit will not work!** This list will automatically update with future releases of Clone Hero and requires you to be connected to the internet to download the correct files *(only needs to be downloaded once, then you are free to stay offline)*
+CHSplit allows you to **customize** your experience with the program. By navigating to the menu in the top left of the app window you can open the side menu where you'll find the **Options** button. Here you'll find a variety of preferences to toggle on and off.
+* **Game version selector** - Here you have to specify what version of Clone Hero you're running. **You always have to select the correct version or CHSplit will not work!** This list will automatically update with future releases of Clone Hero and requires you to be connected to the internet to download the correct files *(only needs to be downloaded once, then you are free to stay offline)*.
 * **Various customizables:**
-    * **Always on top** - Makes the CHSplit's window stay above any other window
-    * **Always show active section difference** - Displays the difference between your PB and current total score in the current highlighted active section
-    * **Show current score in an active section** - Displays the current total score in the current highlighted active section
-    * **Anchor last section to the bottom** - Attaches the last section of a song to the bottom of the window making it always visible with the current PB
-    * **Show song's progress bar** - Displays the song's current time and progress bar
-    * **Hide the total score panel** - Hides the total score and total difference panel for minimalistic display
-    * **Show animations** - Animate the song progress bar stripes, smooth out auto-scroll and animate sidebars opening *(If you're using two monitors with different refresh rates it is recommended to be toggled off to prevent frame limiting)*
+    * **Always on top** - Makes the CHSplit's window stay above any other window.
+    * **Always show active section difference** - Displays the difference between your PB and current total score in the current highlighted active section.
+    * **Show current score in an active section** - Displays the current total score in the current highlighted active section.
+    * **Anchor last section to the bottom** - Attaches the last section of a song to the bottom of the window making it always visible with the current PB.
+    * **Show song's progress bar** - Displays the song's current time and progress bar.
+    * **Hide the total score panel** - Hides the total score and total difference panel for minimalistic display.
+    * **Show animations** - Animate the song progress bar stripes, smooth out auto-scroll and animate sidebars opening *(If you're using two monitors with different refresh rates it is recommended to be toggled off to prevent frame limiting)*.
     * **Autoscroll to active section** - Scroll to the current active highlighted section upon entering it in-game.
-* **Style selector** - Choose a style of the program that suits you. *Planned to be highly customizable in the future*
+* **Style selector** - Choose a style of the program that suits you. *Planned to be highly customizable in the future*.
 
 ## Installation
-CHSplit is a fully portable application, with the exception of the `offset` files, which need to be downloaded either automatically on the app launch or manually in the offset folder above.
-1. Download the latest CHSplit version in the releases tab for your corresponding OS
-1. Extract the files to your desired folder
-1. Launch CHSplit and choose your CH version in the options:
-    1. With internet connection available the `offset` files will be downloaded automatically
-    1. Without internet connection please download the corresponding `offset` files on the [GitHub page](https://github.com/Tornith/CHSplit/tree/master/offsets) and place them into the offset folder within the directory of your `CHSplit.exe` file
+CHSplit is a **fully portable** application, with the exception of the `offset` files, which ***needs*** to be downloaded either automatically on the app launch or manually in the offset folder above.
+1. **Download** the latest CHSplit version in the [releases tab](https://github.com/Tornith/CHSplit/releases) for your corresponding OS.
+1. **Extract** the files to your desired folder.
+1. **Launch** CHSplit and choose your CH version in the options:
+    1. With internet connection available the `offset` files will be downloaded **automatically**.
+    1. Without internet connection please download the corresponding `offset` files **beforehand** on the [GitHub page](https://github.com/Tornith/CHSplit/tree/master/offsets) and place them into the *offset* folder within the directory of your `CHSplit.exe` file.
 
 ## Licence
 MIT License
