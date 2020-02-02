@@ -5,6 +5,10 @@ const scrollToSection = (elem) => document.getElementById('panel-sections')
     .scrollTo(0, document.getElementById(elem).offsetTop - (document.getElementById('panel-sections').offsetHeight/2) + (document.getElementById(elem).offsetHeight/2));
 
 class Sections extends PureComponent {
+    constructor(props){
+        super(props);
+        this.handleScrollTo = this.handleScrollTo.bind(this);
+    }
     render() {
         return (
             <div className={"panel-sections" + (this.props.preferences.lastSectionAnchored ? " last-anchored" : "")} id="panel-sections">
@@ -23,9 +27,10 @@ class Sections extends PureComponent {
             </div>
         );
     }
-
-    handleScrollTo(sectionID){
-        scrollToSection("section-" + sectionID);
+    handleScrollTo = (sectionID) => {
+        if (!(this.props.preferences.lastSectionAnchored && (this.props.song.sections[this.props.song.sections.length - 1][0] === sectionID))) {
+            scrollToSection("section-" + sectionID);
+        }
     }
 }
 

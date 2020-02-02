@@ -23,8 +23,12 @@ class InstanceManager(object):
         return True
 
     def get_address(self, value):
-        pointer = self.instance.read_pointer(self.get_base_pointer(value))
-        return self.offset_address(pointer, value["offsets"])
+        try:
+            pointer = self.instance.read_pointer(self.get_base_pointer(value))
+            res = self.offset_address(pointer, value["offsets"])
+        except WindowsError:
+            raise InvalidAddressException
+        return res
 
     def get_static_address(self, value):
         return "%x" % self.get_base_pointer(value)
@@ -35,10 +39,7 @@ class InstanceManager(object):
     def offset_address(self, pointer, offsets):
         res = pointer
         for i in range(len(offsets)):
-            try:
-                res = self.instance.read_pointer(res[0] + offsets[i])
-            except WindowsError:
-                raise
+            res = self.instance.read_pointer(res[0] + offsets[i])
         return res[1]
 
     def get_value(self, name):
@@ -50,9 +51,17 @@ class InstanceManager(object):
         var_type = ptr_info["var_type"]
         static = ptr_info["offsets"] is None
         address = self.get_address(ptr_info) if not static else self.get_static_address(ptr_info)
-        if var_type == 's':
-            value = funcs[var_type][1](int(address, 16), 1000)[0]
-            value = str(value).decode("utf-16", errors="ignore").split("\x00")[0]
-        else:
-            value = funcs[var_type][0](funcs[var_type][1](int(address, 16))[0])
+        try:
+            if var_type == 's':
+                value = funcs[var_type][1](int(address, 16), 1000)[0]
+                value = str(value).decode("utf-16", errors="ignore").split("\x00")[0]
+            else:
+                value = funcs[var_type][0](funcs[var_type][1](int(address, 16))[0])
+        except WindowsError:
+            raise InvalidAddressException
         return value
+
+
+class InvalidAddressException(WindowsError):
+    """Raised when the instance manager attempts to access an invalid address"""
+    pass

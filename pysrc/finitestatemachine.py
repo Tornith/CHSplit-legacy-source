@@ -34,7 +34,13 @@ class FiniteStateMachine(object):
             log(self.logger, "info", "Reached a final state")
             return True
         else:
-            self.do()
+            output = self.do()
+            if (self.current_state, output) in self.transitions:
+                next_state = self.transitions[(self.current_state, output)]
+            else:
+                next_state = self.current_state
+            if self.current_state != next_state:
+                self.transition(next_state)
             return False
 
     def do(self):
@@ -43,26 +49,21 @@ class FiniteStateMachine(object):
             log(self.logger, "info", "State: {}, call: on_entry".format(self.initial_state.name))
             self.on_every_entry(None)
             self.initial_state.on_entry(None)
-        output = self.current_state.do()
-        if (self.current_state, output) in self.transitions:
-            next_state = self.transitions[(self.current_state, output)]
-        else:
-            next_state = self.current_state
-        if self.current_state != next_state:
-            log(self.logger, "info", "Transitioning from {} into {} under {} transition conditions"
-                .format(self.current_state, next_state, output))
-            self.transition(next_state)
+        return self.current_state.do()
 
-    def transition(self, next_state):
+    def transition(self, next_state, exec_entry=True, exec_exit=True):
         log(self.logger, "info", "State: {}, call: on_exit".format(self.current_state.name))
-        self.current_state.on_exit(next_state)
+
+        if exec_exit:
+            self.current_state.on_exit(next_state)
         self.on_every_exit(next_state)
 
         previous_state = self.current_state
         self.current_state = next_state
 
         log(self.logger, "info", "State: {}, call: on_entry".format(next_state.name))
-        self.on_every_entry(previous_state)
+        if exec_entry:
+            self.on_every_entry(previous_state)
         next_state.on_entry(previous_state)
 
     def get_current_state(self):
@@ -84,22 +85,19 @@ class FSMWithMemory(FiniteStateMachine):
             log(self.logger, "info", "State: {}, call: on_entry".format(self.initial_state.name))
             self.on_every_entry(self.memory, None)
             self.initial_state.on_entry(self.memory, None)
-        output = self.current_state.do(self.memory)
-        if (self.current_state, output) in self.transitions:
-            next_state = self.transitions[(self.current_state, output)]
-        else:
-            next_state = self.current_state
-        if self.current_state != next_state:
-            self.transition(next_state)
+        return self.current_state.do(self.memory)
 
-    def transition(self, next_state):
+    def transition(self, next_state, exec_entry=True, exec_exit=True):
         log(self.logger, "info", "State: {}, call: on_exit".format(self.current_state.name))
-        self.current_state.on_exit(self.memory, next_state)
+
+        if exec_exit:
+            self.current_state.on_exit(self.memory, next_state)
         self.on_every_exit(self.memory, next_state)
 
         previous_state = self.current_state
         self.current_state = next_state
 
         log(self.logger, "info", "State: {}, call: on_entry".format(next_state.name))
-        self.on_every_entry(self.memory, previous_state)
+        if exec_entry:
+            self.on_every_entry(self.memory, previous_state)
         next_state.on_entry(self.memory, previous_state)

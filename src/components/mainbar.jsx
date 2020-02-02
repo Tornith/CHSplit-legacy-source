@@ -11,10 +11,10 @@ class Mainbar extends Component {
                 {(((this.props.renderState === "game" || this.props.renderState === "endscreen") && this.props.song != null && this.props.game != null)) &&
                     <React.Fragment>
                         <SongInfo song={this.props.song} game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
-                        <Sections game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
+                        <Sections song={this.props.song} game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
                     </React.Fragment>
                 }
-                {this.props.renderState === "menu" &&
+                {(this.props.renderState === "menu" || (this.props.renderState === "endscreen" && this.props.song == null )) &&
                     <div className="menu-msg">
                         <h2>Start playing a song!</h2> <p>CHSplit will automatically detect that you're playing a song and make the splits for you!</p>
                     </div>

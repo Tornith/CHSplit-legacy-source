@@ -47,10 +47,12 @@ class App extends Component {
             this.retrieveAllData();
         });
         // On window close shutdown the server
-        window.addEventListener("beforeunload", (ev) => {
-            ev.preventDefault();
-            this.state.socket.emit("SHUTDOWN");
-        });
+        if (process.env.NODE_ENV === 'production'){
+            window.addEventListener("beforeunload", (ev) => {
+                ev.preventDefault();
+                this.state.socket.emit("SHUTDOWN");
+            });
+        }
     }
 
     async initSocket(){
@@ -205,9 +207,8 @@ class App extends Component {
             newMap.get(parseInt(position)).sectionScore = score;
         }
         newMap.forEach((value => {value.active = false}));
-        /*console.log(activeSection);
-        console.log(this.state.song.sections[0][0]);*/
-        newMap.get(activeSection !== undefined ? activeSection : this.state.song.sections[0][0]).active = true;
+        if (this.state.gameState !== "endscreen")
+            newMap.get(activeSection !== undefined ? activeSection : this.state.song.sections[0][0]).active = true;
         if (this.state.sectionHolder !== newMap)
             this.setState({sectionHolder: newMap});
     };
@@ -233,8 +234,13 @@ class App extends Component {
     };
 
     handleChangeOfState = (newState) => {
-        if (newState === "menu"){
-            this.resetSongData();
+        switch (newState){
+            case "menu":
+                this.resetSongData();
+                break;
+            case "endscreen":
+                this.updateAllCurrentSplits();
+                break;
         }
     };
 

@@ -4,7 +4,7 @@ from socketio import Server, WSGIApp
 from gevent import pywsgi, monkey
 from geventwebsocket.handler import WebSocketHandler
 from finitestatemachine import FSMWithMemory, State
-from instancemanager import InstanceManager
+from instancemanager import InstanceManager, InvalidAddressException
 from songdata import SongData
 from gamedata import GameData
 from splitfile import SplitFile
@@ -97,7 +97,7 @@ def send_single(data, event_name, jsonify=False):
 
 
 @sio.on('REQUEST_DATA')
-def request_data(sid, data_id):
+def request_data(_, data_id):
     log_main.info("Manual data request: {}".format(data_id))
     if data_id == "state":
         log_main.debug("state: {}".format(fsm_main.current_state.name))
@@ -115,7 +115,7 @@ def request_data(sid, data_id):
 
 
 @sio.on('SHUTDOWN')
-def shutdown_server(sid):
+def shutdown_server(_):
     wsgi_server.stop()
     thread_fsm.do_run = False
     thread_fsm.join()
@@ -123,12 +123,12 @@ def shutdown_server(sid):
 
 
 @sio.on('callback')
-def acknowledge_success(sid, data):
+def acknowledge_success(_, data):
     log_main.debug("DATA: {}".format(data))
 
 
 @sio.event
-def connect(sid, environ):
+def connect(sid, _):
     print('connect ', sid)
 
 
@@ -140,7 +140,7 @@ def disconnect(sid):
 # States ==================================
 # State: Init =============================
 
-def init_entry(memory, previous_state):
+def init_entry(memory, _):
     if not os.path.isdir(args.path + '/splits'):
         os.makedirs(args.path + '/splits')
         log_main.info("Created splits folder")
@@ -166,11 +166,17 @@ def init_entry(memory, previous_state):
 def init_do(memory):
     if memory["instance_manager"].instance is None and not memory["instance_manager"].attach():
         time.sleep(0.5)
+        memory["late_start"] = True
         return False
     return True
 
 
-state_init = State("init", on_entry=init_entry, do=init_do)
+def init_exit(memory, _):
+    if "late_start" in memory and memory["late_start"]:
+        time.sleep(5)
+
+
+state_init = State("init", on_entry=init_entry, do=init_do, on_exit=init_exit)
 
 
 # State: Menu =============================
@@ -224,7 +230,7 @@ def pregame_do(memory):
     return True
 
 
-def pregame_exit(memory, next_state):
+def pregame_exit(memory, _):
     song_data = memory["song_data"].to_dict()
     pb_data = memory["split_file"].get_personal_best(song_data["instrument"], song_data["difficulty"])
     game_data = memory["game_data"].to_dict()
@@ -237,7 +243,7 @@ state_pregame = State("pregame", do=pregame_do, on_exit=pregame_exit)
 
 # State: Game =============================
 
-def game_entry(memory, previous_state):
+def game_entry(memory, _):
     memory["probe"] = threading.Thread(target=game_probe, args=(memory,))
     memory["probe_run"] = True
     memory["probe_reset"] = False
@@ -279,6 +285,9 @@ def game_exit(memory, next_state):
         if "split_file" in memory:
             log_main.info("Clearing split file data...")
             del memory["split_file"]
+    else:
+        send_single("{}:{}".format(memory["game_data"].activeSection, memory["game_data"].score),
+                    "TRANSFER_GAME_DATA[newSplit]")
 
 
 def game_restart(memory):
@@ -326,7 +335,7 @@ state_game = State("game", do=game_do, on_entry=game_entry, on_exit=game_exit)
 
 # State: End screen =======================
 
-def ends_entry(memory, previous_state):
+def ends_entry(memory, _):
     memory["game_data"].split(memory["song_data"].sections[-1][0])
     splits = memory["game_data"].splits
     instrument = memory["song_data"].instrument
@@ -345,7 +354,7 @@ def ends_do(memory):
     return in_menu, in_game, in_practice
 
 
-def ends_exit(memory, next_state):
+def ends_exit(memory, _):
     if "song_data" in memory:
         log_main.info("Clearing song data...")
         del memory["song_data"]
@@ -369,7 +378,12 @@ def practice_do(memory):
     return in_menu, in_game, in_practice
 
 
-state_practice = State("practice", do=practice_do)
+def practice_exit(_, next_state):
+    if next_state == state_pregame:
+        time.sleep(1)
+
+
+state_practice = State("practice", do=practice_do, on_exit=practice_exit)
 
 
 # On Every Exit ===========================
@@ -405,7 +419,10 @@ def main_loop(fsm):
         thread = threading.currentThread()
         forced_exit = False
         while getattr(thread, "do_run", True) and not forced_exit:
-            forced_exit = fsm.tick()
+            try:
+                forced_exit = fsm.tick()
+            except InvalidAddressException:
+                fsm.transition(state_init, False, False)
             time.sleep(0.1)
     except Exception as e:
         log_main.critical(e, exc_info=True)

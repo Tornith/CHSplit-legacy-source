@@ -30,7 +30,7 @@ class SubmenuOptions extends Component {
                     <Checkbox id={"showSongProgressBar"} label={"Show song's progress bar"} value={this.props.preferences.showSongProgressBar} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"hideTotalScore"} label={"Hide the total score panel"} value={this.props.preferences.hideTotalScore} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showAnimations"} label={"Show animations"} value={this.props.preferences.showAnimations} onInputUpdate={this.props.onPreferenceUpdate} />
-                    <Checkbox id={"enableAutoscroll"} label={"Autoscroll to active section"} value={this.props.preferences.enableAutoscroll} onInputUpdate={this.props.onPreferenceUpdate} />
+                    <Checkbox id={"enableAutoscroll"} label={"Auto-scroll to active section"} value={this.props.preferences.enableAutoscroll} onInputUpdate={this.props.onPreferenceUpdate} />
                     <hr/>
                     <RadioGroup id={"styleChosen"} label={"Application theme:"} options={[
                         {label:"Light theme", value:"defaultLight"},

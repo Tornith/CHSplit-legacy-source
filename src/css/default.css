@@ -541,7 +541,7 @@ main.sidebarOpened::after{
     bottom: 0;
     left: var(--sidebar-width-closed);
     right: var(--scrollbar-width);
-    background: var(--section-background-anchor) !important;
+    background: var(--section-background-anchor);
     border-top: var(--section-border-anchor-width) solid var(--section-border-anchor-color);
 }
 
@@ -564,7 +564,7 @@ main.sidebarOpened::after{
 }
 
 .panel-sections .section.active{
-    background: var(--section-background-active);
+    background: var(--section-background-active) !important;
     border-width: var(--section-border-active-width);
     border-color: var(--section-border-active-color);
     border-style: solid;

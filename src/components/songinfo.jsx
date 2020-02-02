@@ -11,13 +11,13 @@ class SongInfo extends PureComponent {
                     </div>
                     <div className={"panel-score" + (this.props.preferences.hideTotalScore ? " hidden" : "")}>
                         <span className="total-score">{this.formatNumbers(this.props.game.score)}</span>
-                        {this.props.sectionHolder.get(this.props.game.activeSection) !== undefined && this.props.sectionHolder.get(this.props.game.activeSection).pbScore !== null && <span className={"total-score-difference " + ((this.props.game.score - (this.props.sectionHolder.get(this.props.game.activeSection).pbScore) >= 0) ? "positive" : "negative")}>{
-                            this.formatNumbers(this.props.game.score - (this.props.sectionHolder.get(this.props.game.activeSection).pbScore), true)
+                        {this.props.sectionHolder.get(this.props.game.activeSection) !== undefined && this.props.sectionHolder.get(this.props.game.activeSection).pbScore !== null && <span className={"total-score-difference " + ((this.getLastSectionDifference() >= 0) ? "positive" : "negative")}>{
+                            this.formatNumbers(this.getLastSectionDifference(), true)
                         }</span>}
                     </div>
                 </div>
                 <div className={"panel-progress" + (this.props.preferences.showSongProgressBar ? "" : " hidden")} id="panel-progress">
-                    <span className="song-time">{this.formatTime(this.props.game.time) + " / " + this.formatTime(this.props.song.length)}</span>
+                    <span className="song-time">{this.formatTime(Math.min(this.props.game.time, this.props.song.length)) + " / " + this.formatTime(this.props.song.length)}</span>
                     <div className="song-progress-bar-wrapper">
                         <div className="song-progress-bar" style={{width: (100 * (this.props.game.time > 0 ? this.props.game.time : 0) / this.props.song.length) + "%"}}>
                             <div className="stripes"/>
@@ -28,8 +28,25 @@ class SongInfo extends PureComponent {
         );
     }
 
+    getLastSectionDifference = () => {
+        const optShowActDiff = this.props.preferences.showActiveSectionDifference;
+        if (optShowActDiff)
+            return this.props.game.score - (this.props.sectionHolder.get(this.props.game.activeSection).pbScore);
+        else {
+            const sectionHolderKeys = Array.from(this.props.sectionHolder.keys());
+            const activeSectionIndex = sectionHolderKeys.indexOf(this.props.game.activeSection);
+            if (activeSectionIndex > 0){
+                const prevSection = this.props.sectionHolder.get(sectionHolderKeys[activeSectionIndex - 1]);
+                return prevSection.sectionScore - (prevSection.pbScore !== undefined ? prevSection.pbScore : 0);
+            }
+            else{
+                return undefined;
+            }
+        }
+    };
+
     formatNumbers(number, plus = false){
-        if(number === undefined) return "";
+        if(number === undefined) return "\xa0";
         return ((plus && number >= 0) ? "+" : "") + number.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
     }
 

@@ -77,15 +77,9 @@ const createPyProc = (config) => {
 };
 
 const exitPyProc = () => {
-    rq('http://127.0.0.1:' + pyPort + '/shutdown').then(() => {
-        console.log("Successfully shut down the API server");
-    }).catch((e) => {
-        console.error(e);
-    }).finally(() => {
-        killProcesses(pyProc);
-        pyProc = null;
-        pyPort = null;
-    });
+    killProcesses(pyProc);
+    pyProc = null;
+    pyPort = null;
 };
 
 const killProcesses = (process) => {
@@ -119,6 +113,7 @@ function createWindow(config) {
     if (config.alwaysOnTop){
         mainWindow.setAlwaysOnTop(true, "floating", 1);
         mainWindow.setVisibleOnAllWorkspaces(true);
+        //mainWindow.setFullScreenable(false);
     }
     mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`);
     /*mainWindow.loadURL(url.format({
@@ -185,6 +180,11 @@ function updateConfig(id, val){
     writeConfigFile(config, path.join(exec_path, "config.yml"));
 }
 
+function reloadApp(){
+    mainWindow.reload();
+    if (!isDev) createPyProc(config);
+}
+
 app.on('ready', () =>{
     global.config = loadConfig();
     global.updateConfig = updateConfig;
@@ -192,6 +192,7 @@ app.on('ready', () =>{
     createWindow(config);
     menu.setApplicationMenu(null);
     globalShortcut.register("CmdOrCtrl + Shift + I", () => {mainWindow.webContents.openDevTools()});
+    globalShortcut.register("CmdOrCtrl + R", () => {reloadApp()});
     // React Dev Tools
     if (isDev){
         BrowserWindow.addDevToolsExtension(
