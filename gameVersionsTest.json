@@ -1,5 +1,22 @@
 [
   {
+    "header":"StrikeLine",
+    "options":[
+      {
+        "label":"v1.0",
+        "value":"1_0"
+      },
+      {
+        "label":"v0.2.2",
+        "value":"0_2_2"
+      },
+      {
+        "label":"v0.1",
+        "value":"0_1"
+      }
+    ]
+  },
+  {
     "header":"Clone Hero",
     "options":[
       {
