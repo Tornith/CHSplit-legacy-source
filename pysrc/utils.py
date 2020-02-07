@@ -1,11 +1,10 @@
-import tempfile
-
 import mido
 import mido.messages.checks
 import re
 import configparser
-import urllib2
-from yaml import Loader, Dumper, load, dump
+import requests
+import os
+from yaml import Loader, load
 
 
 # Sorry but there's no other way... Some original GH songs have corrupted MIDIs?
@@ -83,15 +82,31 @@ def load_yaml_file(name):
 
 
 def get_offset_file_ajax(version, path):
-    url = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/offsets/offsets.{}.yml'.format(version)
-    offset_data = urllib2.urlopen(url)
-    try:
-        with open(path, 'wb') as f:
-            f.write(offset_data.read())
-            f.flush()
-            return True
-    except urllib2.HTTPError:
+    url = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/offsets/offsets.{}.yml'.format(version)
+    offset_data = requests.get(url, timeout=5)
+    if offset_data.status_code == 200:
+        try:
+            with open(path, 'wb') as f:
+                f.write(offset_data.text)
+                f.flush()
+                return True
+        except WindowsError:
+            return False
+    else:
         return False
+
+
+def get_local_offset_file_list(path):
+    file_list = os.listdir(path)
+    output = []
+    for f in file_list:
+        if re.match('(offsets\.).+(\.yml)', f):
+            yaml = load_yaml_file(path + "/" + f)
+            if yaml is not None:
+                output.append({'game_version': yaml['game_version'],
+                               'game_label': yaml['game_label'],
+                               'file_category': yaml['file_category']})
+    return output
 
 
 def reverse_insort(a, x, lo=0, hi=None):

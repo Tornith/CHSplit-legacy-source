@@ -2,7 +2,7 @@ import React, {PureComponent} from 'react';
 import iconCheck from '../svg/form-check.svg';
 import iconRadio from '../svg/form-radio.svg';
 import iconDropdown from '../svg/form-dropdown.svg';
-import iconRefresh from "../svg/icon-refresh.svg";
+import iconDownload from "../svg/icon-download.svg";
 
 class FormComponent extends PureComponent{
     static defaultProps = {
@@ -109,12 +109,19 @@ export class ListGroup extends FormComponent {
                 <section ref={this.setWrapperRef} className="input-inner">
                     <div className="input-list-wrapper">
                         <div className={"input-list-selected" + (this.state.opened ? " opened" : "")} onClick={() => {this.setState({opened: !this.state.opened})}}>
-                            <div>{this.props.options.find(option => option.value === this.props.value).label}</div>
+                            <div>{this.state.options.map(section => section.options).flat().find(option => option.value === this.props.value).label}</div>
                             <img src={iconDropdown} alt={"Show all"} />
                         </div>
                         <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " collapsed")}>
-                            {this.props.options.map((option, index) => {
-                                return <ListOption id={this.props.id + "_" + index} value={option.value} label={option.label} onSelected={this.selectOption} selected={this.props.value === option.value} />
+                            {this.props.options.map((section) => {
+                                return (
+                                    <React.Fragment>
+                                        <div className={"input-list-section-header"}>{section.header}</div>
+                                        {section.options.map((option, index) => {
+                                            return <ListOption id={this.props.id + "_" + index} value={option.value} label={option.label} onSelected={this.selectOption} selected={this.props.value === option.value} />
+                                        })}
+                                    </React.Fragment>
+                                );
                             })}
                         </div>
                     </div>
@@ -132,8 +139,9 @@ export class ListGroup extends FormComponent {
 class ListOption extends PureComponent {
     render() {
         return (
-            <div className={"input-list-option" + (this.props.selected ? " selected" : "")} onClick={() => {this.props.onSelected(this.props.value)}}>
-                {this.props.label}
+            <div className={"input-list-option" + (this.props.selected ? " selected" : "") + (this.props.highlighted ? " highlighted" : "")} onClick={() => {this.props.onSelected(this.props.value)}}>
+                <span>{this.props.label}</span>
+                {this.props.highlighted && <img className={"icon"} src={iconDownload} alt={"Downloadable"} />}
             </div>
         );
     }
@@ -151,6 +159,7 @@ export class ListGroupAJAX extends ListGroup {
     componentDidMount() {
         super.componentDidMount();
         this.props.getOptions().then((res) => {
+            console.log(res);
             this.setState({options: res});
         });
     }
@@ -163,13 +172,20 @@ export class ListGroupAJAX extends ListGroup {
                     <div className="input-list-wrapper" ref={this.setWrapperRef}>
                         <div className={"input-list-selected" + (this.state.opened ? " opened" : "")} onClick={() => {this.setState({opened: !this.state.opened})}}>
                             <div>
-                                {Array.isArray(this.state.options) ? (this.state.options.find(option => option.value === this.props.value).label) : ""}
+                                {Array.isArray(this.state.options) ? (this.state.options.map(section => section.options).flat().find(option => option.value === this.props.value).label) : ""}
                             </div>
                             <img src={iconDropdown} alt={"Show all"} />
                         </div>
                         {Array.isArray(this.state.options) ? <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " collapsed")}>
-                            {this.state.options.map((option, index) => {
-                                return <ListOption key={this.props.id + "_" + index} id={this.props.id + "_" + index} value={option.value} label={option.label} onSelected={this.selectOption} selected={this.props.value === option.value} />
+                            {this.state.options.map((section, section_index) => {
+                                return (
+                                    <React.Fragment>
+                                        {(this.state.options.length > 1) ? (<div className={"input-list-section-header"}>{section.header}</div>) : ""}
+                                        {section.options.map((option, index) => {
+                                            return <ListOption id={this.props.id + "_" + section_index + "_" + index} value={option.value} label={option.label} onSelected={this.selectOption} selected={this.props.value === option.value} highlighted={!option.hasOwnProperty("local") || !option.local}/>
+                                        })}
+                                    </React.Fragment>
+                                );
                             })}
                         </div> : ""}
                     </div>

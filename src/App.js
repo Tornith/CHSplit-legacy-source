@@ -7,6 +7,7 @@ import fetch from './components/fetchWithTimeout';
 import appInfo from "./appinfo";
 import Notification from "./components/notification";
 import io from 'socket.io-client';
+import iconSpinner from "./svg/icon-spinner.svg";
 
 let open = window.require("open");
 if (process.env.NODE_ENV !== 'production') {
@@ -34,6 +35,7 @@ class App extends Component {
             preferences: preferences
         };
         import("./css/" + this.state.preferences.styleChosen + ".css");
+        this.manualRequest = this.manualRequest.bind(this);
     }
 
     componentDidMount() {
@@ -65,17 +67,17 @@ class App extends Component {
 
     setupListeners = () => {
         this.state.socket.on('TRANSFER_DATA', (data) => {
-            const parsedData = this.parseTransferredData(data);
+            const parsedData = JSON.parse(data);
             this.addDataToState(parsedData);
         });
         this.state.socket.on('TRANSFER_SONG_DATA', (data) => {
-            const parsedData = this.parseTransferredData(data);
+            const parsedData = JSON.parse(data);
             this.addDataToState(parsedData);
             this.setState({sectionHolder: new Map()});
             this.initializeSectionObjects();
         });
         this.state.socket.on('TRANSFER_GAME_DATA', (data) => {
-            const parsedData = this.parseTransferredData(data);
+            const parsedData = JSON.parse(data);
             let game = {score: parsedData.score === undefined ? 0 : parsedData.score,
                         time: parsedData.time === undefined ? -1.0 : parsedData.time,
                         activeSection: parsedData.activeSection,
@@ -122,6 +124,13 @@ class App extends Component {
         this.state.socket.on('GAME_EVENT', (event) => {
             this.handleRaisedEvent(event);
         });
+        this.state.socket.on('ERROR_MESSAGE', (er) => {
+            this.handleRaisedError(er);
+        });
+    };
+
+    initCheck = () => {
+        return this.state.socket !== null && this.state.gameState !== null
     };
 
     retrieveAllData = () => {
@@ -130,11 +139,11 @@ class App extends Component {
             this.setState({ gameState: parsedData.state });
             if (parsedData.state === "game" || gameState.state === "endscreen"){
                 const promiseSong = this.manualRequest("song").then((songData) => {
-                    const data = this.parseTransferredData(songData);
+                    const data = JSON.parse(songData);
                     this.addDataToState(data);
                 });
                 const promiseGame = this.manualRequest("game").then((gameData) => {
-                    const data = this.parseTransferredData(gameData);
+                    const data = JSON.parse(gameData);
                     this.addDataToState(data);
                 });
                 Promise.all([promiseSong, promiseGame]).then(() => {
@@ -143,10 +152,6 @@ class App extends Component {
                 });
             }
         });
-    };
-
-    parseTransferredData = (data) => {
-        return JSON.parse(data);
     };
 
     addDataToState(data){
@@ -161,6 +166,10 @@ class App extends Component {
         if (event === "gameRestart"){
             this.clearSplits();
         }
+    };
+
+    handleRaisedError = (error) =>{
+        this.pushNotification(`ERR_${error.code}`, `${error.message}`, "error", false, undefined);
     };
 
     manualRequest(data, timeout=2000){
@@ -256,24 +265,37 @@ class App extends Component {
         return (
             <React.Fragment>
                 <Header onKeyDown={this.keypressClose}/>
-                <section className={"app-body" + (this.state.preferences.showAnimations ? "" : " no-anim")} onKeyDown={this.keypressClose}>
-                    <Sidebar opened={this.state.sidebarOpened}
-                             openedSubmenu={this.state.submenuOpenedType}
-                             onToggle={this.handleToggleSidebar}
-                             onMenuSelect={this.handleToggleSubmenu}
-                             onSubmenuDefocus={(this.state.submenuOpenedType != null ? () => this.handleToggleSubmenu(null) : undefined)}
-                    />
-                    <Mainbar song={this.state.song}
-                             game={this.state.game}
-                             notifications={this.state.notifications}
-                             renderState={this.state.gameState}
-                             sectionHolder={this.state.sectionHolder}
-                             sidebarOpened={this.state.sidebarOpened}
-                             onSidebarDefocus={(this.state.sidebarOpened ? this.handleToggleSidebar : undefined)}
+                {this.initCheck() && <div className={"app-wrapper"}>
+                    <section className={"app-body" + (this.state.preferences.showAnimations ? "" : " no-anim")} onKeyDown={this.keypressClose}>
+                        <Sidebar opened={this.state.sidebarOpened}
+                                 openedSubmenu={this.state.submenuOpenedType}
+                                 onToggle={this.handleToggleSidebar}
+                                 onMenuSelect={this.handleToggleSubmenu}
+                                 onSubmenuDefocus={(this.state.submenuOpenedType != null ? () => this.handleToggleSubmenu(null) : undefined)}
+                        />
+                        <Mainbar song={this.state.song}
+                                 game={this.state.game}
+                                 notifications={this.state.notifications}
+                                 renderState={this.state.gameState}
+                                 sectionHolder={this.state.sectionHolder}
+                                 sidebarOpened={this.state.sidebarOpened}
+                                 onSidebarDefocus={(this.state.sidebarOpened ? this.handleToggleSidebar : undefined)}
+                                 preferences={this.state.preferences}
+                        />
+                    </section>
+                    <Submenu openedSubmenu={this.state.submenuOpenedType}
+                             newUpdate={this.state.newUpdate}
+                             checkForUpdates={this.checkUpToDate}
                              preferences={this.state.preferences}
+                             socket={this.state.socket}
+                             onPreferenceUpdate={this.updatePreference}
+                             onKeyDown={this.keypressClose}
+                             manualRequest={this.manualRequest}
                     />
-                </section>
-                <Submenu openedSubmenu={this.state.submenuOpenedType} newUpdate={this.state.newUpdate} checkForUpdates={this.checkUpToDate} preferences={this.state.preferences} onPreferenceUpdate={this.updatePreference} onKeyDown={this.keypressClose}/>
+                </div>}
+                <div className={"app-loading" + (this.initCheck() ? " hidden" : "")}>
+                    <span>Loading...</span>
+                </div>
             </React.Fragment>
         );
     }
@@ -307,7 +329,7 @@ class App extends Component {
     };
 
     checkUpToDate = async () => {
-        let uri = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/version.json';
+        let uri = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/appVersion.json';
         let h = new Headers();
         h.append('Accept', 'application/json');
         let req = new Request(uri, {method: "GET", headers: h});
@@ -322,7 +344,7 @@ class App extends Component {
         }).then(data => {
             const parsed = JSON.parse(JSON.stringify(data));
             const hierarchy = ["dev", "alpha", "beta", "rc"];
-            const newest = (hierarchy.some(val => appInfo.version.includes(val))) ? parsed.version : parsed.stableVersion;
+            const newest = (hierarchy.some(val => appInfo.version.includes(val))) ? parsed.devVersion : parsed.stableVersion;
             const result = (compareVersions(appInfo.version, newest) < 0);
             this.setState({newUpdate: result});
             return result;

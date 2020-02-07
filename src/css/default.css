@@ -154,12 +154,44 @@ header .window-button > object{
     transition: var(--header-buttons-transition);
 }
 
+.app-wrapper{
+    display: flex;
+    justify-content: stretch;
+    align-items: stretch;
+    height: 100%;
+    position: relative;
+}
+
 .app-body{
     display: flex;
     justify-content: stretch;
     align-items: stretch;
     height: 100%;
     position: relative;
+}
+
+.app-loading{
+    background-color: #202020;
+    color: rgba(255, 255, 255, 0.25);
+    transition: 0.25s opacity;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    font-family: "LeagueSpartan", sans-serif;
+    font-size: 16pt;
+}
+
+.app-loading.hidden{
+    display: block !important;
+    opacity: 0;
+    user-select: none;
+    pointer-events: none;
+}
+
+.app-loading span{
+    position: absolute;
+    bottom: 1em;
+    right: 1em;
 }
 
 aside{
@@ -727,6 +759,7 @@ main.sidebarOpened::after{
 .input-list-wrapper{
     position: relative;
     margin-top: 0.5em;
+    height: 2em;
 }
 
 .input-list-selected{
@@ -737,18 +770,23 @@ main.sidebarOpened::after{
     background-color: #fff;
     border: 2px solid #ddd;
     color: #000;
-    /*cursor: pointer;*/
-    width: 100px;
+    width: 100%;
     height: 2em;
 }
 
-.input-list-selected img{
+.input-list-selected > img{
     display: block;
     width: 8px;
     height: auto;
     margin-left: 0.5em;
     pointer-events: none;
     user-select: none;
+    transform: rotate(0deg);
+    transition: transform 0.075s;
+}
+
+.input-list-selected.opened > img{
+    transform: rotate(180deg);
 }
 
 .input-list-dropdown{
@@ -756,11 +794,11 @@ main.sidebarOpened::after{
     flex-direction: column;
     max-height: 200px;
     height: 200px;
-    overflow-y: auto;
+    overflow-y: scroll;
     background-color: #fff;
     border: 2px solid #ddd;
     width: 100%;
-    position: absolute;
+    position: relative;
     transition: height 0.075s, opacity 0.075s;
 }
 .input-list-dropdown.collapsed{
@@ -772,15 +810,26 @@ main.sidebarOpened::after{
 .input-list-option{
     color: #000;
     padding: 0.33em 0.5em;
-    /*cursor: pointer;*/
     transition: background-color 0.05s;
     width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 .input-list-option.selected{
     background-color: #eee;
 }
+.input-list-option.highlighted{
+    background-color: #ffffe6;
+}
 .input-list-option:hover{
     background-color: #80c4ff;
+}
+.input-list-option .icon{
+    margin-left: 0.5em;
+    width: 1em;
+    height: 1em;
+    opacity: 0.5;
 }
 .input-list-refresh{
     height: calc(2em + 2px);
@@ -789,6 +838,12 @@ main.sidebarOpened::after{
 .input-list-refresh > img{
     width: 100%;
     height: auto;
+}
+.input-list-section-header{
+    color: #000;
+    font-weight: 600;
+    padding: 0.25em 0.33em;
+    width: 100%;
 }
 .submenu-subcontent > .input-wrapper:first-child{
     margin-top: 0;

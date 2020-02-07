@@ -15,7 +15,7 @@ const yaml = require('js-yaml');
 const windowStateKeeper = require('electron-window-state');
 
 const portable_path = process.env.PORTABLE_EXECUTABLE_DIR;
-const exec_path = (portable_path === undefined) ? path.join(__dirname, '../') : portable_path;
+const exec_path = (portable_path === undefined) ? path.join(__dirname, '..') : portable_path;
 
 /*************************************************************
  * py process

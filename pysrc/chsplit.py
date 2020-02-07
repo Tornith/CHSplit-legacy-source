@@ -77,7 +77,7 @@ log_flask.disabled = True
 def send_data(data, name, event_name):
     if name is None:
         message = data
-    elif not isinstance(data, list) and not isinstance(name, list):
+    elif not isinstance(name, list):
         message = {name: data}
     elif isinstance(data, list) and isinstance(name, list):
         message = dict(zip(name, data))
@@ -96,6 +96,12 @@ def send_single(data, event_name, jsonify=False):
     sio.emit(event_name, data, json=jsonify)
 
 
+def send_err_msg(code, message):
+    log_main.debug("Sent {}\n\tMessage: {}".format("ERROR_MESSAGE", message))
+    data = json.dumps({code: code, message: message})
+    sio.emit("ERROR_MESSAGE", data, json=True)
+
+
 @sio.on('REQUEST_DATA')
 def request_data(_, data_id):
     log_main.info("Manual data request: {}".format(data_id))
@@ -112,6 +118,10 @@ def request_data(_, data_id):
         game_data = fsm_main.memory["game_data"].to_dict()
         log_main.debug("game: {}".format(game_data))
         send_data(game_data, "game", "REQUEST_RESPONSE_GAME")
+    elif data_id == "offset_list":
+        offset_list = utils.get_local_offset_file_list(args.path + "/offsets")
+        log_main.debug("offset_list: {}".format(offset_list))
+        send_data(offset_list, "offset_list", "REQUEST_RESPONSE_OFFSET_LIST")
 
 
 @sio.on('SHUTDOWN')
@@ -153,12 +163,14 @@ def init_entry(memory, _):
     if offsets is None:
         log_main.info("Offset file not downloaded, downloading for game version: {}"
                       .format(memory["config"]["selectedGameVersion"]))
-        utils.get_offset_file_ajax(memory["config"]["selectedGameVersion"], offsets_path)
-        offsets = utils.load_yaml_file(offsets_path)
-        if offsets is None:
+        res = utils.get_offset_file_ajax(memory["config"]["selectedGameVersion"], offsets_path)
+        if res:
+            offsets = utils.load_yaml_file(offsets_path)
+        else:
+            send_err_msg(0x1, "Invalid game version selected, please choose a different one.")
             log_main.critical("Offset file not found; Invalid game version: {}"
                               .format(memory["config"]["selectedGameVersion"]))
-            raise Exception("Offset file not found")
+            raise FSMException("Offset file not found")
     memory["offsets"] = offsets
     memory["instance_manager"] = InstanceManager(memory["offsets"], logger=log_main)
 
@@ -196,8 +208,9 @@ state_menu = State("menu", do=menu_do)
 def pregame_do(memory):
     song_ini = utils.get_song_ini(memory["instance_manager"].get_value("path"))
     if song_ini is None:
+        send_err_msg(0x2, "Couldn't retrieve the song.ini file of the current song.")
         log_main.error("Couldn't retrieve song ini")
-        raise Exception("Couldn't retrieve song ini")
+        raise FSMException("Couldn't retrieve song ini")
     song_info = {}
     try:
         song_info["name"] = song_ini["song"]["name"]
@@ -208,8 +221,9 @@ def pregame_do(memory):
         elif os.path.exists(path + "/notes.mid"):
             path = path + "/notes.mid"
         else:
+            send_err_msg(0x3, "Couldn't retrieve the notes.chart file of the current song.")
             log_main.error("Couldn't retrieve notes file")
-            raise Exception("Couldn't retrieve notes file")
+            raise FSMException("Couldn't retrieve notes file")
         song_info["chart_path"] = path
         song_info["speed"] = memory["instance_manager"].get_value("speed")
         song_info["instrument"] = memory["instance_manager"].get_value("instrument")
@@ -260,7 +274,9 @@ def game_do(memory):
     try:
         memory["game_data"].get_current_data(memory["instance_manager"], memory["song_data"])
     except WindowsError:
+        send_err_msg(0x4, "Unexpected pointer change.")
         log_main.error("Unexpected pointer change")
+        raise FSMException("Unexpected pointer change")
 
     in_menu = memory["instance_manager"].get_value("in_menu") == 1
     in_game = memory["instance_manager"].get_value("in_game") == 1
@@ -343,8 +359,9 @@ def ends_entry(memory, _):
     memory["split_file"].add_splits(splits, instrument, difficulty)
     status = memory["split_file"].save_file()
     if not status:
+        send_err_msg(0x5, "Unable to save the split file.")
         log_main.error("Couldn't save split file")
-        raise Exception("Couldn't save split file")
+        raise FSMException("Couldn't save split file")
 
 
 def ends_do(memory):
@@ -424,8 +441,13 @@ def main_loop(fsm):
             except InvalidAddressException:
                 fsm.transition(state_init, False, False)
             time.sleep(0.1)
-    except Exception as e:
+    except FSMException as e:
         log_main.critical(e, exc_info=True)
+        sys.exit(1)
+    except Exception as e:
+        send_err_msg(0x0, "Unhandled exception error.")
+        log_main.critical(e, exc_info=True)
+        sys.exit(2)
 
 
 # Main ====================================
@@ -447,3 +469,8 @@ if __name__ == '__main__':
     wsgi_server = pywsgi.WSGIServer(('127.0.0.1', args.port), app, handler_class=WebSocketHandler)
     wsgi_server.serve_forever()
     # app.run(threaded=True, host='127.0.0.1', port=listening_port)
+
+
+class FSMException(Exception):
+    """Raised when an expected exception happens in the FSM"""
+    pass

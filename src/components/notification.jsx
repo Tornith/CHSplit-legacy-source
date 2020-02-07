@@ -10,7 +10,7 @@ class Notification extends Component {
         return (
             <div className={"notification notif-" + this.props.type}>
                 <object className="notif-icon" type="image/svg+xml" data={this.getNotificationIcon(this.props.type)}>{this.props.type}</object>
-                <div onClick={this.props.action} className="notif-text">{this.props.text}</div>
+                <div onClick={(this.props.action !== undefined) ? this.props.action : ""} className="notif-text">{this.props.text}</div>
                 <div onClick={() => this.props.closeNotification(this.props.id)}>
                     <object className={"notif-close" + (!this.props.closeable ? " hidden" : "")} type="image/svg+xml" data={notificationClose}>Close</object>
                 </div>

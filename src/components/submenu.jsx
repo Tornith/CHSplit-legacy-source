@@ -5,10 +5,13 @@ import {Checkbox, ListGroupAJAX, RadioGroup} from './formcomponents';
 import fetch from "./fetchWithTimeout";
 
 class Submenu extends Component {
+    constructor(props){
+        super(props);
+    }
     render() {
         return (
             <div className={"submenu-wrapper" + (this.props.preferences.showAnimations ? "" : " no-anim") + ((this.props.openedSubmenu == null) ? "" : " opened")}>
-                <SubmenuOptions opened={this.props.openedSubmenu === "Options"} preferences={this.props.preferences} onPreferenceUpdate={this.props.onPreferenceUpdate}/>
+                <SubmenuOptions opened={this.props.openedSubmenu === "Options"} preferences={this.props.preferences} onPreferenceUpdate={this.props.onPreferenceUpdate} socket={this.props.socket} manualRequest={this.props.manualRequest}/>
                 <SubmenuAbout opened={this.props.openedSubmenu === "About"} newUpdate={this.props.newUpdate} checkForUpdates={this.props.checkForUpdates}/>
             </div>
         );
@@ -41,8 +44,38 @@ class SubmenuOptions extends Component {
         );
     }
 
-    getGameVersions = async () =>{
-        let uri = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/gameVersions.json';
+    getGameVersions = async () => {
+        const ajaxURI = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/gameVersions.json';
+        let localList = [], ajaxList;
+        const promiseLocal = this.props.manualRequest("offset_list").then((list) => {
+            const parsedList = JSON.parse(list);
+            let grouped = {};
+            parsedList["offset_list"].forEach((entry) => {
+                if (grouped.hasOwnProperty(entry["file_category"])) grouped[entry["file_category"]].push(entry);
+                else grouped[entry["file_category"]] = [entry];
+            });
+            Object.keys(grouped).forEach((key) => {
+                let section = {header: key, options:[]};
+                grouped[key].forEach((entry) => {
+                    section.options.push({label: entry["game_label"], value: entry["game_version"], local: true});
+                });
+                localList.push(section);
+            });
+        });
+        const promiseAJAX = this.getAJAXGameVersionList(ajaxURI).then((list) => {
+            ajaxList = list;
+        });
+        return new Promise(((resolve, reject) => {
+            Promise.all([promiseLocal, promiseAJAX]).then(() => {
+                resolve(this.mergeGameVerLists(localList, ajaxList));
+            }).catch(e => {
+                console.error(e);
+                reject(e);
+            });
+        }));
+    };
+
+    getAJAXGameVersionList = async (uri) => {
         let h = new Headers();
         h.append('Accept', 'application/json');
         let req = new Request(uri, {method: "GET", headers: h});
@@ -59,6 +92,42 @@ class SubmenuOptions extends Component {
                 reject(reason);
             })
         });
+    };
+
+    mergeGameVerLists = (l1, l2) => {
+        const sectionOrder = ["StrikeLine", "Clone Hero", "CHLauncher", "Custom"];
+        const listSort = (list, a, b) => {return list.indexOf(a) === -1 ? 1 : list.indexOf(b) === -1 ? -1 : list.indexOf(a) - list.indexOf(b)};
+        const entrySort = (a, b) => {
+            const numsA = a.match(/(\d+)/g);
+            const numsB = b.match(/(\d+)/g);
+            if (numsA !== null && numsB !== null){
+                let res = 0;
+                for(let i = 0; i < Math.min(numsA.length, numsB.length); i++){
+                    res = numsA[i] - numsB[i];
+                    if (res !== 0) break;
+                }
+                if (res === 0){
+                    return ("" + a).localeCompare(b);
+                }
+                return res;
+            }
+        };
+
+        let output = [];
+        [...l1, ...l2.filter(sct => {
+            return l1.every(sct2 => sct.header !== sct2.header);
+        })].sort((a, b) => {return listSort(sectionOrder, a.header, b.header)})
+            .forEach(section1 => {
+            let merged = {header: section1.header, options: [...section1.options]};
+            const section2 = l2.find(ob => ob.header === section1.header);
+            if (section2 !== undefined){
+                const lel = section2.options.filter(opt => !section1.options.some(x => x.value === opt.value));
+                merged.options = merged.options.concat(lel);
+            }
+            merged.options.sort((a, b) => entrySort(b.value, a.value));
+            output.push(merged);
+        });
+        return output;
     }
 }
 
@@ -109,29 +178,5 @@ class SubmenuAbout extends Component {
         return false;
     };
 }
-
-async function getGameVersions(){
-    let uri = 'https://chsplit.tornith.cz/game_versions.json';
-    let h = new Headers();
-    h.append('Accept', 'application/json');
-    let req = new Request(uri, {method: "POST", headers: h, mode: "cors"});
-
-    await fetch(req).then((response) => {
-        if (response.ok){
-            return response.json();
-        }
-        else{
-            console.error("HTTP Error: Couldn't fetch version data");
-        }
-    }).then(data => {
-        const parsed = JSON.parse(JSON.stringify(data));
-        const result = (this.compareVersions(appInfo.version, parsed.version) > 0);
-        this.setState({newUpdate: result});
-        return result;
-    }).catch((e) => {
-        console.error(e);
-        return false;
-    });
-};
 
 export default Submenu;

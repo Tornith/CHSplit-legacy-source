@@ -27,12 +27,26 @@ CHSplit allows you to **customize** your experience with the program. By navigat
 * **Style selector** - Choose a style of the program that suits you. *Planned to be highly customizable in the future*.
 
 ## Installation
-CHSplit is a **fully portable** application, with the exception of the `offset` files, which ***needs*** to be downloaded either automatically on the app launch or manually in the offset folder above.
+CHSplit is a **fully portable** application, with the exception of the `offset` files, which ***need*** to be downloaded either automatically on the app launch or manually from the offset folder above.
 1. **Download** the latest CHSplit version in the [releases tab](https://github.com/Tornith/CHSplit/releases) for your corresponding OS.
-1. **Extract** the files to your desired folder.
+1. **Extract** the files from the downloaded archive to your desired folder.
 1. **Launch** CHSplit and choose your CH version in the options:
-    1. With internet connection available the `offset` files will be downloaded **automatically**.
-    1. Without internet connection please download the corresponding `offset` files **beforehand** on the [GitHub page](https://github.com/Tornith/CHSplit/tree/master/offsets) and place them into the *offset* folder within the directory of your `CHSplit.exe` file.
+    1. With internet connection available, the `offset` files will be downloaded **automatically**.
+    1. Without internet connection, please download the corresponding `offset` files **beforehand** on the [GitHub page](https://github.com/Tornith/CHSplit/tree/master/offsets) and place them into the *offset* folder within the directory of your `CHSplit.exe` file.
+
+## FAQ
+
+**Q: Does online work?**<br>
+*A: No*
+
+**Q: Is it compatible with previous Clone Hero versions?**<br>
+*A: No*
+
+**Q: Where do I report bugs?**<br>
+*A: Here*
+
+**Q: It's not working!**<br>
+*A: Tough luck*
 
 ## Licence
 MIT License
