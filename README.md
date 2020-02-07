@@ -27,26 +27,40 @@ CHSplit allows you to **customize** your experience with the program. By navigat
 * **Style selector** - Choose a style of the program that suits you. *Planned to be highly customizable in the future*.
 
 ## Installation
-CHSplit is a **fully portable** application, with the exception of the `offset` files, which ***need*** to be downloaded either automatically on the app launch or manually from the offset folder above.
+CHSplit is a **fully portable** application, with the exception of the `offset` files. CHSplit comes bundled with offset files for the latest version of Clone Hero, as of that CHSplit's version release, otherwise they ***need*** to be downloaded either automatically upon choosing the corresponding version in the app's options or manually from the [`remote/offset`](https://github.com/Tornith/CHSplit/tree/master/remote/offsets) folder above.
 1. **Download** the latest CHSplit version in the [releases tab](https://github.com/Tornith/CHSplit/releases) for your corresponding OS.
 1. **Extract** the files from the downloaded archive to your desired folder.
 1. **Launch** CHSplit and choose your CH version in the options:
     1. With internet connection available, the `offset` files will be downloaded **automatically**.
-    1. Without internet connection, please download the corresponding `offset` files **beforehand** on the [GitHub page](https://github.com/Tornith/CHSplit/tree/master/offsets) and place them into the *offset* folder within the directory of your `CHSplit.exe` file.
-
+    1. Without internet connection, please download the corresponding `offset` files **beforehand** from the [`remote/offset`](https://github.com/Tornith/CHSplit/tree/master/remote/offsets) folder above and place them into the *offset* folder within the directory of your `CHSplit.exe` file.
+    
 ## FAQ
-
-**Q: Does online work?**<br>
-*A: No*
-
-**Q: Is it compatible with previous Clone Hero versions?**<br>
-*A: No*
+**Q: Does it work with CHLauncher?**<br>
+*A: As of the v0.2 release, CHLauncher does **not** work with CHSplit. However it is currently my top priority to make CHLauncher compatible with CHSplit at the moment.*
 
 **Q: Where do I report bugs?**<br>
-*A: Here*
+*A: If you find any sort of bugs, please report them here on GitHub in the [issues tab](https://github.com/Tornith/CHSplit/issues). Please search for your issue first to avoid any duplicate reports.*
+
+**Q: Is feature *XYZ* planned?**<br>
+*A: You can find all planned features and their development progress on the public [Trello page](https://trello.com/b/bgwuqQQ4/chsplit). If you'd like to suggest any features you can use the **Feature request** template in the [issues tab](https://github.com/Tornith/CHSplit/issues) (Please avoid duplicates)*
+
+**Q: When will the next version get released?**<br>
+*A: Please be patient, it will be released when it's ready. I am a university student and I do this in my free time and I can't spend it all coding, that'd drive me nuts.*
+
+**Q: Is it compatible with previous Clone Hero versions?**<br>
+*A: CHSplit is compatible with every major release of Clone Hero starting from v23.2.2.*
+
+**Q: Is CHSplit going to be released for x86, Mac and Linux in the future?**<br>
+*A: Yes, I plan to release CHSplit for all of those.*
+
+**Q: Can I modify the source code of CHSplit?**<br>
+*A: Yes, it is an open-source app, feel free to modify the app to your desire. Keep in mind that I will not help you in any way with your modifications or explain the code to you.*
+
+**Q: Can I cheat and edit the split files?**<br>
+*A: Yes, but that would defeat the entire purpose of the program.*
 
 **Q: It's not working!**<br>
-*A: Tough luck*
+*A: Please report your bugs and issues here on GitHub in the [issues tab](https://github.com/Tornith/CHSplit/issues). Be as much descriptive as possible.*
 
 ## Licence
 MIT License

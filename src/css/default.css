@@ -507,7 +507,7 @@ main.sidebarOpened::after{
     height: 100%;
     overflow: hidden;
     position: relative;
-    transition: 0.1s;
+    transition: width linear 1s;
 }
 
 .song-progress-bar-wrapper .stripes{
