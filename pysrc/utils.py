@@ -83,7 +83,10 @@ def load_yaml_file(name):
 
 def get_offset_file_ajax(version, path):
     url = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/offsets/offsets.{}.yml'.format(version)
-    offset_data = requests.get(url, timeout=5)
+    try:
+        offset_data = requests.get(url, timeout=5)
+    except requests.RequestException:
+        return False
     if offset_data.status_code == 200:
         try:
             with open(path, 'wb') as f:

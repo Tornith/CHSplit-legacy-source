@@ -32,7 +32,8 @@ class App extends Component {
             notifications: [],
             newUpdate: false,
             socket: null,
-            preferences: preferences
+            preferences: preferences,
+            error: false
         };
         import("./css/" + this.state.preferences.styleChosen + ".css");
         this.manualRequest = this.manualRequest.bind(this);
@@ -125,7 +126,7 @@ class App extends Component {
             this.handleRaisedEvent(event);
         });
         this.state.socket.on('ERROR_MESSAGE', (er) => {
-            this.handleRaisedError(er);
+            this.handleRaisedError(JSON.parse(er));
         });
     };
 
@@ -170,6 +171,7 @@ class App extends Component {
 
     handleRaisedError = (error) =>{
         this.pushNotification(`ERR_${error.code}`, `${error.message}`, "error", false, undefined);
+        this.setState({error: true});
     };
 
     manualRequest(data, timeout=2000){
@@ -291,6 +293,8 @@ class App extends Component {
                              onPreferenceUpdate={this.updatePreference}
                              onKeyDown={this.keypressClose}
                              manualRequest={this.manualRequest}
+                             openLink={openLink}
+                             getNewVersion={getNewVersion}
                     />
                 </div>}
                 <div className={"app-loading" + (this.initCheck() ? " hidden" : "")}>
@@ -398,7 +402,11 @@ const compareVersions = (a, b) => {
 
 const getNewVersion = () => {
     const newVersionURL = "https://github.com/Tornith/CHSplit/releases/latest";
-    open(newVersionURL);
+    openLink(newVersionURL);
+};
+
+const openLink = (link) => {
+    open(link);
 };
 
 const isDictEmpty = (dict) => {

@@ -1,4 +1,4 @@
-v0.2 - Settings and QoL improvements
+### v0.2 - Settings and QoL improvements
 	- Added - Added an options menu to personalize CHSplit
 		- Always on top - Makes the CHS' window stay above any other window
 		- Always show active section difference - In the current active section, displays the difference between your PB and current score
@@ -28,9 +28,9 @@ v0.2 - Settings and QoL improvements
 	- Fix - Fixed some song.ini issues with some Unicode characters.
 	- Fix - Fixed the song timer surpassing the song length
 
-v0.1.1 - Hotfix
+### v0.1.1 - Hotfix
 	- Fix - Fixed when restarting from the endscreen the split file doesn't get properly loaded
 	- Fix - Fixed score screen disappearing when in end screen in-game
 	- Fix - Fixed the empty space below section bar when there are few sections
 	
-v0.1 - Initial Pre-Release
+### v0.1 - Initial Pre-Release

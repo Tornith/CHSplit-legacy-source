@@ -65,13 +65,15 @@ file_handler.setFormatter(formatter)
 log_main.addHandler(file_handler)
 
 
-# Flask ==================================
+# Server ==================================
 
 sio = Server(async_mode="gevent", cors_allowed_origins="*")
 app = WSGIApp(sio)
 
 log_flask = logging.getLogger('werkzeug')
 log_flask.disabled = True
+
+client_connected = False
 
 
 def send_data(data, name, event_name):
@@ -98,7 +100,7 @@ def send_single(data, event_name, jsonify=False):
 
 def send_err_msg(code, message):
     log_main.debug("Sent {}\n\tMessage: {}".format("ERROR_MESSAGE", message))
-    data = json.dumps({code: code, message: message})
+    data = json.dumps({"code": code, "message": message})
     sio.emit("ERROR_MESSAGE", data, json=True)
 
 
@@ -139,15 +141,29 @@ def acknowledge_success(_, data):
 
 @sio.event
 def connect(sid, _):
+    global client_connected
     print('connect ', sid)
+    client_connected = True
 
 
 @sio.event
 def disconnect(sid):
+    global client_connected
     print('disconnect ', sid)
+    client_connected = False
 
 
 # States ==================================
+# State: Pre-Init =========================
+
+def preinit_do(memory):
+    global client_connected
+    return client_connected
+
+
+state_preinit = State("preinit", do=preinit_do)
+
+
 # State: Init =============================
 
 def init_entry(memory, _):
@@ -412,7 +428,8 @@ def send_state_message(memory, next_state):
 # Transitions =============================
 # Loopbacks happen automatically if no matching transition state is found
 
-transitions = {(state_init, True): state_menu,
+transitions = {(state_preinit, True): state_init,
+               (state_init, True): state_menu,
                (state_menu, (False, True, False)): state_pregame,
                (state_menu, (False, True, True)): state_practice,
                (state_pregame, True): state_game,
@@ -461,7 +478,7 @@ if __name__ == '__main__':
     else:
         log_main.info("DEBUG MODE: false")
 
-    fsm_main = FSMWithMemory(state_init, transitions, memory={"config": args.config}, logger=log_main,
+    fsm_main = FSMWithMemory(state_preinit, transitions, memory={"config": args.config}, logger=log_main,
                              on_every_exit=send_state_message)
     thread_fsm = threading.Thread(target=main_loop, args=(fsm_main,))
     thread_fsm.start()

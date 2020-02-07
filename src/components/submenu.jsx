@@ -12,7 +12,7 @@ class Submenu extends Component {
         return (
             <div className={"submenu-wrapper" + (this.props.preferences.showAnimations ? "" : " no-anim") + ((this.props.openedSubmenu == null) ? "" : " opened")}>
                 <SubmenuOptions opened={this.props.openedSubmenu === "Options"} preferences={this.props.preferences} onPreferenceUpdate={this.props.onPreferenceUpdate} socket={this.props.socket} manualRequest={this.props.manualRequest}/>
-                <SubmenuAbout opened={this.props.openedSubmenu === "About"} newUpdate={this.props.newUpdate} checkForUpdates={this.props.checkForUpdates}/>
+                <SubmenuAbout opened={this.props.openedSubmenu === "About"} newUpdate={this.props.newUpdate} checkForUpdates={this.props.checkForUpdates} openLink={this.props.openLink} getNewVersion={this.props.getNewVersion}/>
             </div>
         );
     }
@@ -45,34 +45,47 @@ class SubmenuOptions extends Component {
     }
 
     getGameVersions = async () => {
-        const ajaxURI = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/gameVersions.json';
-        let localList = [], ajaxList;
-        const promiseLocal = this.props.manualRequest("offset_list").then((list) => {
-            const parsedList = JSON.parse(list);
-            let grouped = {};
-            parsedList["offset_list"].forEach((entry) => {
-                if (grouped.hasOwnProperty(entry["file_category"])) grouped[entry["file_category"]].push(entry);
-                else grouped[entry["file_category"]] = [entry];
-            });
-            Object.keys(grouped).forEach((key) => {
-                let section = {header: key, options:[]};
-                grouped[key].forEach((entry) => {
-                    section.options.push({label: entry["game_label"], value: entry["game_version"], local: true});
-                });
-                localList.push(section);
-            });
+        const ajaxURI = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/gameVersionsTest.json';
+        let localList = [], ajaxList = [];
+        const promiseLocal = this.getLocalGameVersionList().then((list) => {
+            localList = list;
         });
         const promiseAJAX = this.getAJAXGameVersionList(ajaxURI).then((list) => {
             ajaxList = list;
         });
         return new Promise(((resolve, reject) => {
-            Promise.all([promiseLocal, promiseAJAX]).then(() => {
+            Promise.allSettled([promiseLocal, promiseAJAX]).then(() => {
                 resolve(this.mergeGameVerLists(localList, ajaxList));
             }).catch(e => {
                 console.error(e);
                 reject(e);
             });
         }));
+    };
+
+    getLocalGameVersionList = async () => {
+        return new Promise((resolve, reject) => {
+            this.props.manualRequest("offset_list").then((list) => {
+                let localList = [];
+                const parsedList = JSON.parse(list);
+                let grouped = {};
+                parsedList["offset_list"].forEach((entry) => {
+                    if (grouped.hasOwnProperty(entry["file_category"])) grouped[entry["file_category"]].push(entry);
+                    else grouped[entry["file_category"]] = [entry];
+                });
+                Object.keys(grouped).forEach((key) => {
+                    let section = {header: key, options:[]};
+                    grouped[key].forEach((entry) => {
+                        section.options.push({label: entry["game_label"], value: entry["game_version"], local: true});
+                    });
+                    localList.push(section);
+                });
+                resolve(localList);
+            }).catch(e => {
+                console.error(e);
+                reject(e);
+            });
+        });
     };
 
     getAJAXGameVersionList = async (uri) => {
@@ -153,12 +166,18 @@ class SubmenuAbout extends Component {
                         <span className="about-logo-version">&nbsp;v{appInfo.version}</span>
                     </div>
                     <p>
-                        <button className={"update-button" + (this.props.newUpdate ? " new-version" : "")} onClick={this.props.newUpdate ? this.getNewVersion : this.checkUpdates} disabled={(this.state.checkedUpToDate || this.state.checkingUpToDate) ? (!this.props.newUpdate) : false}>
+                        <button className={"update-button" + (this.props.newUpdate ? " new-version" : "")} onClick={this.props.newUpdate ? this.props.getNewVersion : this.checkUpdates} disabled={(this.state.checkedUpToDate || this.state.checkingUpToDate) ? (!this.props.newUpdate) : false}>
                             {(this.props.newUpdate ? "New version available!" : (this.state.checkedUpToDate ? "Up to date" : (this.state.checkingUpToDate ? "Checking" : "Check for updates")))}
                             {this.state.checkingUpToDate ? <object type="image/svg+xml" data={iconSpinner}>...</object> : ""}
                         </button>
                     </p>
-                    <p>&copy; 2019 Tornith, All rights reserved.</p>
+                    <p>Copyright &copy; 2020 Tornith</p>
+                    <hr/>
+                    <p className={"about-buttons"}>
+                        <button onClick={() => {this.props.openLink("https://github.com/Tornith/CHSplit")}}>GitHub Page</button>
+                        <button onClick={() => {this.props.openLink("https://github.com/Tornith/CHSplit/issues")}}>Report Bugs</button>
+                        <button onClick={() => {this.props.openLink("https://github.com/Tornith/CHSplit/blob/master/CHANGELOG.md")}}>Changelog</button>
+                    </p>
                </div>
             </div>
         );
@@ -172,10 +191,6 @@ class SubmenuAbout extends Component {
             this.setState({checkingUpToDate: false, checkedUpToDate: false});
             console.log("Connection error: Couldn't check for updates " + e);
         });
-    };
-
-    getNewVersion = () =>{
-        return false;
     };
 }
 

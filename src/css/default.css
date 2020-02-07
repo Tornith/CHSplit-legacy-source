@@ -368,12 +368,18 @@ aside.opened .sidebar-menu{
 .about-logo-title{
     font-family: var(--font-primary);
     font-size: 48pt;
+    letter-spacing: -3px;
 }
 
 .about-logo-version{
     position: absolute;
     bottom: 0;
     right: 0;
+}
+
+p.about-buttons > button{
+    width: 175px;
+    margin: 0.5em 0;
 }
 
 main{
@@ -640,7 +646,8 @@ main.sidebarOpened::after{
     display: block;
     flex-direction: column;
     height: auto;
-    width: calc(100% - var(--sidebar-width-closed))
+    width: calc(100% - var(--sidebar-width-closed));
+    top: 0;
 }
 
 .notification{
@@ -787,6 +794,11 @@ main.sidebarOpened::after{
 
 .input-list-selected.opened > img{
     transform: rotate(180deg);
+}
+
+.input-list-selected.red-highlight{
+    border-color: #ff4040;
+    background-color: #ffe6e6;
 }
 
 .input-list-dropdown{

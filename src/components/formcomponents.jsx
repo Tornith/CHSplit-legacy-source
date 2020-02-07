@@ -159,21 +159,19 @@ export class ListGroupAJAX extends ListGroup {
     componentDidMount() {
         super.componentDidMount();
         this.props.getOptions().then((res) => {
-            console.log(res);
             this.setState({options: res});
         });
     }
 
     render() {
+        const selectedOption = this.findSelectedOption();
         return (
             <section className={"input-wrapper list-sync vertical" + (this.props.restartRequired ? " restart-required" : "") + (this.state.changed ? " changed" : "")}>
                 <label>{this.props.label}</label>
                 <section className="input-inner">
                     <div className="input-list-wrapper" ref={this.setWrapperRef}>
-                        <div className={"input-list-selected" + (this.state.opened ? " opened" : "")} onClick={() => {this.setState({opened: !this.state.opened})}}>
-                            <div>
-                                {Array.isArray(this.state.options) ? (this.state.options.map(section => section.options).flat().find(option => option.value === this.props.value).label) : ""}
-                            </div>
+                        <div className={"input-list-selected" + (this.state.opened ? " opened" : "") + ((selectedOption === undefined) ? " red-highlight" : "")} onClick={() => {this.setState({opened: !this.state.opened})}}>
+                            <div>{(selectedOption !== undefined) ? selectedOption.label : ""}</div>
                             <img src={iconDropdown} alt={"Show all"} />
                         </div>
                         {Array.isArray(this.state.options) ? <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " collapsed")}>
@@ -192,5 +190,10 @@ export class ListGroupAJAX extends ListGroup {
                 </section>
             </section>
         );
+    }
+
+    findSelectedOption = () => {
+        if (Array.isArray(this.state.options)) return this.state.options.map(section => section.options).flat().find(option => option.value === this.props.value);
+        else return undefined;
     }
 }
