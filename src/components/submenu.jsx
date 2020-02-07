@@ -45,7 +45,7 @@ class SubmenuOptions extends Component {
     }
 
     getGameVersions = async () => {
-        const ajaxURI = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/gameVersionsTest.json';
+        const ajaxURI = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/gameVersions.json';
         let localList = [], ajaxList = [];
         const promiseLocal = this.getLocalGameVersionList().then((list) => {
             localList = list;
