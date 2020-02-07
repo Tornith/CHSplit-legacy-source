@@ -189,7 +189,7 @@ class SubmenuAbout extends Component {
             this.setState({checkingUpToDate: false, checkedUpToDate: true});
         }).catch((e) => {
             this.setState({checkingUpToDate: false, checkedUpToDate: false});
-            console.log("Connection error: Couldn't check for updates " + e);
+            console.error("Connection error: Couldn't check for updates " + e);
         });
     };
 }

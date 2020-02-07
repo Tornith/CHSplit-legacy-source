@@ -43,7 +43,7 @@ class App extends Component {
         this.checkUpToDate().then(() => {
             if (this.state.newUpdate) this.pushNotification("update", "A new version of CHSplit is available! Click here to download it!", "update", true, () => {getNewVersion(); this.removeNotification("update");});
         }).catch((e) => {
-            console.log("Connection error: Couldn't check for updates " + e);
+            console.error("Connection error: Couldn't check for updates " + e);
         });
         this.initSocket().then(() => {
             this.setupListeners();
@@ -313,7 +313,6 @@ class App extends Component {
     };
 
     removeNotification = (notification) => {
-        console.log("removing " + notification);
         let filtered = this.state.notifications.filter(x => (x.props.id !== notification));
         this.setState({notifications: filtered});
     };
