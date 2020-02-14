@@ -1,4 +1,4 @@
-![CHSplit](https://github.com/Tornith/CHSplit/blob/master/public/chslogofull.png?raw=true)<br>
+![CHSplit](https://github.com/Tornith/CHSplit/blob/master/logo.png?raw=true)<br>
 ## A tool to assist with score grinding in Clone Hero
 
 # !!! IMPORTANT: The current version of CHSplit does *not* work with CHLauncher !!!
@@ -7,9 +7,8 @@
 
 ## Features
 * **Difference with your personal best** - CHSplit remembers your previous runs of songs, compares your current run with your personal best and shows you the difference in each section.
-* **Automatic splitting** - CHSplit reads the song info and sections and splits fully automatically based on your playthrough.
+* **Everything is automatic** - CHSplit reads the song info and sections and splits fully automatically based on your selected song in-game and your playthrough. You don't have to manually search for anything! It also separates splits based on the song's speed, difficulty and chosen modifiers.
 * **No need to overwrite any Clone Hero files** - CHSplit automatically detects an instance of Clone Hero and reads the values directly from the game.
-* **Backwards compatibility** - Any CHSplit version will be compatible with any Clone Hero version (starting with v.23.2.2).
 * **Many new features soon!** - CHSplit is still early in development with a lot of planned features. You can track the development progress on the public [Trello page](https://trello.com/b/bgwuqQQ4/chsplit).
 
 ## Options
@@ -39,7 +38,13 @@ CHSplit is a **fully portable** application, with the exception of the `offset` 
 *A: As of the v0.2 release, CHLauncher does **not** work with CHSplit. However it is currently my top priority to make CHLauncher compatible with CHSplit at the moment.*
 
 **Q: Where do I report bugs?**<br>
-*A: If you find any sort of bugs, please report them here on GitHub in the [issues tab](https://github.com/Tornith/CHSplit/issues). Please search for your issue first to avoid any duplicate reports.*
+*A: If you find any sort of bugs, please report them here on GitHub in the [issues tab](https://github.com/Tornith/CHSplit/issues). Please search for your issue first to avoid any duplicate reports. Please attach your latest log file in your report if you're able to.*
+
+**Q: When I try to window capture the CHSplit window on OBS it's just pure black. What do I do?**<br>
+*A: The issue is sadly on Microsoft's and Google's side. Since I made CHSplit in Electron it is rendered using Chromium which bypasses the Windows GDI. Because of that, OBS has no way of capturing what's happening on the window. **However** there **is** a fix, but you have to do it yourself. **Right-click** the **CHSplit executable** and go to **properties**. There navigate to the **Compatibility tab** and check the **Run this program in compatibility mode for** box and set it to **Windows 8**. This should resolve the issue, although beware, it **might** impact the program's visual performance.*
+
+**Q: My game is lagging whenever I have CHSplit open. What's up with that?**<br>
+*A: If you're using a dual monitor setup with different refresh rates, please either make sure to run CHSplit on your higher refresh rate monitor or try **disabling animations** and enabling **always on top** in the settings. CHSplit is rendered using your GPU and there is an ancient bug with Windows where the higher refresh rate monitor gets limited to the lower refresh rate if there is something being rendered on the other monitor.*
 
 **Q: Is feature *XYZ* planned?**<br>
 *A: You can find all planned features and their development progress on the public [Trello page](https://trello.com/b/bgwuqQQ4/chsplit). If you'd like to suggest any features you can use the **Feature request** template in the [issues tab](https://github.com/Tornith/CHSplit/issues) (Please avoid duplicates)*
@@ -51,13 +56,7 @@ CHSplit is a **fully portable** application, with the exception of the `offset` 
 *A: CHSplit is compatible with every major release of Clone Hero starting from v23.2.2.*
 
 **Q: Is CHSplit going to be released for x86, Mac and Linux in the future?**<br>
-*A: Yes, I plan to release CHSplit for all of those.*
-
-**Q: Can I modify the source code of CHSplit?**<br>
-*A: Yes, it is an open-source app, feel free to modify the app to your desire. Keep in mind that I will not help you in any way with your modifications or explain the code to you.*
-
-**Q: Can I cheat and edit the split files?**<br>
-*A: Yes, but that would defeat the entire purpose of the program.*
+*A: Yes, I plan to release CHSplit for all of those in the future.*
 
 **Q: It's not working!**<br>
 *A: Please report your bugs and issues here on GitHub in the [issues tab](https://github.com/Tornith/CHSplit/issues). Be as much descriptive as possible.*

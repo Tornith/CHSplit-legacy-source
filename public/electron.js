@@ -7,12 +7,12 @@ const globalShortcut = electron.globalShortcut;
 const path = require('path');
 const psTree = require('ps-tree');
 const isDev = require('electron-is-dev');
-const url = require('url');
-const rq = require('request-promise');
 const unhandled = require('electron-unhandled');
 const fs = require('fs');
 const yaml = require('js-yaml');
 const windowStateKeeper = require('electron-window-state');
+const getPort = require('get-port');
+const socketio = require('socket.io-client');
 
 const portable_path = process.env.PORTABLE_EXECUTABLE_DIR;
 const exec_path = (portable_path === undefined) ? path.join(__dirname, '..') : portable_path;
@@ -44,48 +44,46 @@ const getScriptPath = () => {
     return path.join(__dirname, PY_DIST_FOLDER, PY_MODULE);
 };
 
-const selectPort = () => {
-    pyPort = 58989;
-    return pyPort;
+const selectPort = async () => {
+    return await getPort({port: 58989});
 };
 
 const createPyProc = (config) => {
     let script = getScriptPath();
-    let port = '' + selectPort();
     const config_str = JSON.stringify(config);
     config_str.replace("\"", "'");
-    if (guessPackaged()) {
-        pyProc = require('child_process').execFile(script, [exec_path, port, config_str], function(err, stdout, stderr) {
-            console.log(stdout);
-            console.log(stderr);
-        });
-        console.log("packaged");
-        pyProc.on('exit', () => {
-            console.log("Exiting child process");
-        })
-    } else {
-        pyProc = require('child_process').spawn('python', [script, exec_path, port, config_str]);
-        console.log("not packaged")
-    }
+    selectPort().then((res) => {
+        let port = '' + res;
+        pyPort = port;
+        global.port = port;
+        if (guessPackaged()) {
+            pyProc = require('child_process').execFile(script, [exec_path, port, config_str], function(err, stdout, stderr) {
+                console.log(stdout);
+                console.log(stderr);
+            });
+            console.log("packaged");
+            pyProc.on('exit', () => {
+                console.log("Exiting child process");
+            })
+        } else {
+            pyProc = require('child_process').spawn('python', [script, exec_path, port, config_str]);
+            console.log("not packaged")
+        }
 
-    if (pyProc != null) {
-        pyProc.stdout.on('data', function(data) {
-            console.log(data.toString());
-        });
-        console.log('child process success on port ' + port);
-    }
-};
-
-const exitPyProc = () => {
-    killProcesses(pyProc);
-    pyProc = null;
-    pyPort = null;
-};
-
-const killProcesses = (process) => {
-    psTree(process.pid, function (err, children) {
-        require('child_process').spawn('kill', ['-9'].concat(children.map(function (p) { return p.PID })));
+        if (pyProc != null) {
+            pyProc.stdout.on('data', function(data) {
+                console.log(data.toString());
+            });
+            console.log('child process success on port ' + port);
+        }
     });
+};
+
+const killProcesses = () => {
+    //Shutdown the server
+    const port = "http://127.0.0.1:" + pyPort;
+    socketio.connect(port, {query: "shutdown"});
+    pyProc = null;
 };
 
 /*************************************************************
@@ -99,6 +97,13 @@ function createWindow(config) {
     app.commandLine.appendSwitch('force-device-scale-factor', '1');
     app.commandLine.appendSwitch ("disable-http-cache");
 
+    if (config.disableHardwareAcceleration){
+        app.commandLine.appendSwitch("disable-gpu");
+        app.commandLine.appendSwitch('disable-gpu-compositing');
+        app.commandLine.appendSwitch('disable-accelerated-video-decode');
+        app.commandLine.appendSwitch('disable-accelerated-video-encode');
+    }
+
     let prevWindowState = windowStateKeeper({
         defaultWidth: 500,
         defaultHeight: 640
@@ -111,17 +116,16 @@ function createWindow(config) {
         height: prevWindowState.height,
         frame: false, webPreferences: { nodeIntegration: true }});
     if (config.alwaysOnTop){
-        mainWindow.setAlwaysOnTop(true, "floating", 1);
+        mainWindow.setAlwaysOnTop(true, "screen-saver", 1);
         mainWindow.setVisibleOnAllWorkspaces(true);
-        //mainWindow.setFullScreenable(false);
+        mainWindow.setFullScreenable(false);
     }
     mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`);
-    /*mainWindow.loadURL(url.format({
-        pathname: isDev ? '127.0.0.1:3000' : path.join(__dirname, '../build/index.html'),
-        protocol: isDev ? 'http:' : 'file:',
-        slashes: true
-    }));*/
-    mainWindow.on('closed', () => mainWindow = null);
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+        killProcesses();
+        app.quit();
+    });
     prevWindowState.manage(mainWindow);
 }
 
@@ -186,24 +190,23 @@ function reloadApp(){
 }
 
 app.on('ready', () =>{
-    global.config = loadConfig();
-    global.updateConfig = updateConfig;
-    createPyProc(config);
-    createWindow(config);
-    menu.setApplicationMenu(null);
-    globalShortcut.register("CmdOrCtrl + Shift + I", () => {mainWindow.webContents.openDevTools()});
-    globalShortcut.register("CmdOrCtrl + R", () => {reloadApp()});
-    // React Dev Tools
-    if (isDev){
-        BrowserWindow.addDevToolsExtension(
-            path.join('C:\\Users\\Michal\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Extensions\\fmkadmapgofadopljbjfkapdkoienihi\\4.4.0_0')
-        )
-    }
-});
-
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
+    if (!app.requestSingleInstanceLock()){
         app.quit();
+    }
+    else{
+        global.config = loadConfig();
+        global.updateConfig = updateConfig;
+        createPyProc(config);
+        createWindow(config);
+        menu.setApplicationMenu(null);
+        globalShortcut.register("CmdOrCtrl + Shift + I", () => {mainWindow.webContents.openDevTools()});
+        globalShortcut.register("CmdOrCtrl + R", () => {reloadApp()});
+        // React Dev Tools
+        if (isDev){
+            BrowserWindow.addDevToolsExtension(
+                path.join('C:\\Users\\Michal\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Extensions\\fmkadmapgofadopljbjfkapdkoienihi\\4.4.0_0')
+            )
+        }
     }
 });
 
@@ -211,10 +214,6 @@ app.on('activate', () => {
     if (mainWindow === null) {
         createWindow();
     }
-});
-
-app.on('before-quit', () =>{
-    exitPyProc();
 });
 
 unhandled();

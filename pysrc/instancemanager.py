@@ -42,12 +42,12 @@ class InstanceManager(object):
             res = self.instance.read_pointer(res[0] + offsets[i])
         return res[1]
 
-    def get_value(self, name):
+    def get_value(self, name, raw=False):
         funcs = {'i': (int, self.instance.read_int),
                  'd': (float, self.instance.read_double),
                  'b': (int, self.instance.read_char),
                  's': (str, self.instance.read_string)}
-        ptr_info = self.offsets["values"][name]
+        ptr_info = self.offsets["values"][name] if not raw else name
         var_type = ptr_info["var_type"]
         static = ptr_info["offsets"] is None
         address = self.get_address(ptr_info) if not static else self.get_static_address(ptr_info)

@@ -34,6 +34,7 @@ class SubmenuOptions extends Component {
                     <Checkbox id={"hideTotalScore"} label={"Hide the total score panel"} value={this.props.preferences.hideTotalScore} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showAnimations"} label={"Show animations"} value={this.props.preferences.showAnimations} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"enableAutoscroll"} label={"Auto-scroll to active section"} value={this.props.preferences.enableAutoscroll} onInputUpdate={this.props.onPreferenceUpdate} />
+                    <Checkbox id={"disableHardwareAcceleration"} label={"Disable hardware acceleration"} value={this.props.preferences.disableHardwareAcceleration} onInputUpdate={this.props.onPreferenceUpdate} restartRequired/>
                     <hr/>
                     <RadioGroup id={"styleChosen"} label={"Application theme:"} options={[
                         {label:"Light theme", value:"defaultLight"},
@@ -171,7 +172,7 @@ class SubmenuAbout extends Component {
                             {this.state.checkingUpToDate ? <object type="image/svg+xml" data={iconSpinner}>...</object> : ""}
                         </button>
                     </p>
-                    <p>Copyright &copy; 2020 Tornith</p>
+                    <p>CHSplit &copy; 2020 Tornith, All rights reserved.</p>
                     <hr/>
                     <p className={"about-buttons"}>
                         <button onClick={() => {this.props.openLink("https://github.com/Tornith/CHSplit")}}>GitHub Page</button>

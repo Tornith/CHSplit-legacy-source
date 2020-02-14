@@ -7,7 +7,6 @@ import fetch from './components/fetchWithTimeout';
 import appInfo from "./appinfo";
 import Notification from "./components/notification";
 import io from 'socket.io-client';
-import iconSpinner from "./svg/icon-spinner.svg";
 
 let open = window.require("open");
 if (process.env.NODE_ENV !== 'production') {
@@ -15,7 +14,7 @@ if (process.env.NODE_ENV !== 'production') {
     whyDidYouRender(React);
 }
 
-const socketURL = "http://127.0.0.1:58989";
+const socketURL = "http://127.0.0.1:" + window.require("electron").remote.getGlobal('port');
 
 class App extends Component {
     constructor(props){
@@ -54,6 +53,7 @@ class App extends Component {
             window.addEventListener("beforeunload", (ev) => {
                 ev.preventDefault();
                 this.state.socket.emit("SHUTDOWN");
+                this.state.socket.disconnect();
             });
         }
     }

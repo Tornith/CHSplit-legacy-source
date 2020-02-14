@@ -30,9 +30,13 @@ class GameData(object):
     def get_current_data(self, instance_manager, song):
         previous_section = self.activeSection
         try:
+            err = "Score"
             self.score = instance_manager.get_value("score")
+            err = "Position"
             self.position = instance_manager.get_value("position")
+            err = "Time"
             self.time = instance_manager.get_value("time")
+            err = "Active section"
             self.activeSection = song.get_section_from_time(self.position)
             if previous_section is not None and \
                     self.activeSection not in self.splits and \
@@ -40,5 +44,5 @@ class GameData(object):
                 self.split(previous_section)
             return True
         except WindowsError:
-            log(self.logger, "error", "Couldn't retrieve game data")
+            log(self.logger, "error", "Couldn't retrieve game data: {}".format(err))
             return False

@@ -9,4 +9,5 @@ config:
   hideTotalScore: false
   showAnimations: true
   enableAutoscroll: true
+  disableHardwareAcceleration: false
   styleChosen: defaultLight

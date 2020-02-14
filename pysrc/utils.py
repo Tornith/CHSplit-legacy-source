@@ -4,7 +4,7 @@ import re
 import configparser
 import requests
 import os
-from yaml import Loader, load
+from yaml import safe_load, YAMLError
 
 
 # Sorry but there's no other way... Some original GH songs have corrupted MIDIs?
@@ -41,6 +41,7 @@ def get_chart_sections(file_path):
 
 
 def get_midi_sections(file_path):
+    # dump_midi_info(file_path)
     mid = mido.MidiFile(file_path, clip=True)
     section_dict = []
     for i, track in enumerate(mid.tracks):
@@ -48,14 +49,29 @@ def get_midi_sections(file_path):
             time_sum = 0
             for msg in track:
                 time_sum += msg.time
-                if isinstance(msg, mido.midifiles.meta.MetaMessage) and msg.type == 'text' and "section" in msg.text:
-                    section_name = msg.text.split("section ")[1].replace("]", "")
-                    section_dict.append((time_sum, section_name))
+                if isinstance(msg, mido.midifiles.meta.MetaMessage) and msg.type == 'text':
+                    if "section" in msg.text:
+                        section_name = msg.text.split("section ")[1].replace("]", "")
+                        section_dict.append((time_sum, section_name))
+                    elif "prc_" in msg.text:
+                        section_name = msg.text.split("prc_")[1].replace("]", "")
+                        section_dict.append((time_sum, section_name))
     return section_dict
 
 
+def dump_midi_info(file_path):
+    mid = mido.MidiFile(file_path, clip=True)
+    for i, track in enumerate(mid.tracks):
+        if track.name == "EVENTS":
+            time_sum = 0
+            for msg in track:
+                time_sum += msg.time
+                if isinstance(msg, mido.midifiles.meta.MetaMessage) and msg.type == 'text':
+                    print msg.text
+
+
 def get_song_ini(file_path):
-    song_info = configparser.RawConfigParser()
+    song_info = configparser.RawConfigParser(strict=False)
     try:
         song_info.read(file_path + "/song.ini", encoding='utf-8')
     except configparser.MissingSectionHeaderError:
@@ -74,26 +90,35 @@ def load_ini_file(name):
 
 
 def load_yaml_file(name):
+    if not os.path.exists(name):
+        return None
     try:
         with open(name) as yaml_file:
-            return load(yaml_file, Loader=Loader)
-    except IOError:
+            return safe_load(yaml_file)
+    except (IOError, YAMLError):
         return None
 
 
-def get_offset_file_ajax(version, path):
-    url = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/offsets/offsets.{}.yml'.format(version)
+def get_offset_file_ajax(game_version, path, current_offset_version):
+    url = 'https://raw.githubusercontent.com/Tornith/CHSplit/master/remote/offsets/offsets.{}.yml'.format(game_version)
     try:
         offset_data = requests.get(url, timeout=5)
     except requests.RequestException:
         return False
     if offset_data.status_code == 200:
         try:
-            with open(path, 'wb') as f:
-                f.write(offset_data.text)
-                f.flush()
-                return True
-        except WindowsError:
+            yml = safe_load(offset_data.text)
+        except YAMLError:
+            return False
+        if yml["file_version"] > current_offset_version:
+            try:
+                with open(path, 'wb') as f:
+                    f.write(offset_data.text)
+                    f.flush()
+                    return True
+            except WindowsError:
+                return False
+        else:
             return False
     else:
         return False

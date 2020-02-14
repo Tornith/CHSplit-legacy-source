@@ -128,6 +128,8 @@ def request_data(_, data_id):
 
 @sio.on('SHUTDOWN')
 def shutdown_server(_):
+    fsm_main.transition(state_terminate)
+    log_main.debug("Shutting down...")
     wsgi_server.stop()
     thread_fsm.do_run = False
     thread_fsm.join()
@@ -140,16 +142,19 @@ def acknowledge_success(_, data):
 
 
 @sio.event
-def connect(sid, _):
+def connect(sid, environ):
+    if "shutdown" in environ['QUERY_STRING']:
+        log_main.debug("Shutdown request")
+        shutdown_server(None)
     global client_connected
-    print('connect ', sid)
+    log_main.debug('connect ', sid)
     client_connected = True
 
 
 @sio.event
 def disconnect(sid):
     global client_connected
-    print('disconnect ', sid)
+    log_main.debug('disconnect ', sid)
     client_connected = False
 
 
@@ -175,18 +180,34 @@ def init_entry(memory, _):
         log_main.info("Created offsets folder")
     offsets_path = args.path + '/offsets/offsets.' + memory["config"]["selectedGameVersion"] + '.yml'
     log_main.debug(offsets_path)
-    offsets = utils.load_yaml_file(offsets_path)
-    if offsets is None:
+
+    cur_yml = utils.load_yaml_file(offsets_path)
+
+    if cur_yml is not None:
+        log_main.info("Comparing offset file ({}) version".format(memory["config"]["selectedGameVersion"]))
+        try:
+            cur_ver = cur_yml["file_version"]
+        except KeyError:
+            log_main.warning("Invalid offset file, downloading a fresh offset file.")
+            cur_ver = -1
+        res = utils.get_offset_file_ajax(memory["config"]["selectedGameVersion"], offsets_path, cur_ver)
+    else:
         log_main.info("Offset file not downloaded, downloading for game version: {}"
                       .format(memory["config"]["selectedGameVersion"]))
-        res = utils.get_offset_file_ajax(memory["config"]["selectedGameVersion"], offsets_path)
-        if res:
-            offsets = utils.load_yaml_file(offsets_path)
-        else:
-            send_err_msg(0x1, "Invalid game version selected, please choose a different one.")
-            log_main.critical("Offset file not found; Invalid game version: {}"
-                              .format(memory["config"]["selectedGameVersion"]))
-            raise FSMException("Offset file not found")
+        res = utils.get_offset_file_ajax(memory["config"]["selectedGameVersion"], offsets_path, -1)
+
+    if res:
+        log_main.debug("New offset file version downloaded")
+        offsets = utils.load_yaml_file(offsets_path)
+    elif cur_yml is not None:
+        log_main.debug("Offset file up to date")
+        offsets = cur_yml
+    else:
+        send_err_msg(0x1, "Invalid game version selected, please choose a different one.")
+        log_main.critical("Offset file not found; Invalid game version: {}"
+                          .format(memory["config"]["selectedGameVersion"]))
+        raise FSMException("Offset file not found")
+
     memory["offsets"] = offsets
     memory["instance_manager"] = InstanceManager(memory["offsets"], logger=log_main)
 
@@ -229,8 +250,11 @@ def pregame_do(memory):
         raise FSMException("Couldn't retrieve song ini")
     song_info = {}
     try:
+        err = "Name"
         song_info["name"] = song_ini["song"]["name"]
+        err = "Length"
         song_info["length"] = memory["instance_manager"].get_value("length")
+        err = "Path"
         path = memory["instance_manager"].get_value("path")
         if os.path.exists(path + "/notes.chart"):
             path = path + "/notes.chart"
@@ -241,12 +265,16 @@ def pregame_do(memory):
             log_main.error("Couldn't retrieve notes file")
             raise FSMException("Couldn't retrieve notes file")
         song_info["chart_path"] = path
+        err = "Speed"
         song_info["speed"] = memory["instance_manager"].get_value("speed")
+        err = "Instrument"
         song_info["instrument"] = memory["instance_manager"].get_value("instrument")
+        err = "Difficulty"
         song_info["difficulty"] = memory["instance_manager"].get_value("difficulty")
+        err = "Modifiers"
         song_info["modifiers"] = memory["instance_manager"].get_value("modifiers")
     except WindowsError:
-        log_main.error("Couldn't retrieve song info")
+        log_main.error("Couldn't retrieve song info: {}".format(err))
         return False
     log_main.info("Song info: {}".format(song_info))
     memory["song_data"] = SongData(song_info, logger=log_main)
@@ -405,9 +433,11 @@ state_endscreen = State("endscreen", on_entry=ends_entry, do=ends_do, on_exit=en
 # State: Practice =========================
 
 def practice_do(memory):
+    in_practice = memory["instance_manager"].get_value("in_practice") != 0
+    if not in_practice:
+        time.sleep(0.5)
     in_menu = memory["instance_manager"].get_value("in_menu") != 0
     in_game = memory["instance_manager"].get_value("in_game") != 0
-    in_practice = memory["instance_manager"].get_value("in_practice") != 0
     return in_menu, in_game, in_practice
 
 
@@ -417,6 +447,11 @@ def practice_exit(_, next_state):
 
 
 state_practice = State("practice", do=practice_do, on_exit=practice_exit)
+
+
+# State: Terminate ========================
+
+state_terminate = State("terminate", do=(lambda *l: None))
 
 
 # On Every Exit ===========================
@@ -473,7 +508,6 @@ if __name__ == '__main__':
     if args.config["debugMode"]:
         log_main.setLevel(logging.DEBUG)
         log_main.addHandler(logging.StreamHandler(sys.stdout))
-        # log_flask.disabled = False
         log_main.info("DEBUG MODE: true")
     else:
         log_main.info("DEBUG MODE: false")
@@ -485,7 +519,6 @@ if __name__ == '__main__':
 
     wsgi_server = pywsgi.WSGIServer(('127.0.0.1', args.port), app, handler_class=WebSocketHandler)
     wsgi_server.serve_forever()
-    # app.run(threaded=True, host='127.0.0.1', port=listening_port)
 
 
 class FSMException(Exception):

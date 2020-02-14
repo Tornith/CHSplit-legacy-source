@@ -701,6 +701,8 @@ main.sidebarOpened::after{
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
+    position: relative;
+    flex-flow: wrap;
 }
 
 .input-wrapper.horizontal{ align-items: center; }
@@ -711,6 +713,10 @@ main.sidebarOpened::after{
 .input-wrapper.single{ margin: 1em 0; }
 
 .input-wrapper.list-sync .input-inner{ display: flex; align-items: flex-end; }
+
+.input-wrapper.horizontal label{
+    width: calc(100% - 22px - 0.5em);
+}
 
 .input-inner{
     margin-top: 0.5em;
