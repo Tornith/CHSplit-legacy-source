@@ -180,7 +180,11 @@ export class ListGroupAJAX extends ListGroup {
                                     <React.Fragment>
                                         {(this.state.options.length > 1) ? (<div className={"input-list-section-header"}>{section.header}</div>) : ""}
                                         {section.options.map((option, index) => {
-                                            return <ListOption id={this.props.id + "_" + section_index + "_" + index} value={option.value} label={option.label} onSelected={this.selectOption} selected={this.props.value === option.value} highlighted={!option.hasOwnProperty("local") || !option.local}/>
+                                            return <ListOption id={this.props.id + "_" + section_index + "_" + index}
+                                                               value={option.value} label={option.label}
+                                                               onSelected={this.selectOption}
+                                                               selected={this.props.value === option.value}
+                                                               highlighted={!option.hasOwnProperty("local") || !option.local}/>
                                         })}
                                     </React.Fragment>
                                 );

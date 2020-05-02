@@ -5,13 +5,13 @@ const menu = electron.Menu;
 const globalShortcut = electron.globalShortcut;
 
 const path = require('path');
-const psTree = require('ps-tree');
+const pstree = require('ps-tree');
 const isDev = require('electron-is-dev');
 const unhandled = require('electron-unhandled');
 const fs = require('fs');
 const yaml = require('js-yaml');
 const windowStateKeeper = require('electron-window-state');
-const getPort = require('get-port');
+const portfinder = require('portfinder');
 const socketio = require('socket.io-client');
 
 const portable_path = process.env.PORTABLE_EXECUTABLE_DIR;
@@ -25,6 +25,7 @@ const PY_DIST_FOLDER = '../pydist';
 const PY_FOLDER = '../pysrc';
 const PY_MODULE = 'CHSplit'; // without .py suffix
 
+let pids = [];
 let pyPort = null;
 let pyProc = null;
 
@@ -45,15 +46,15 @@ const getScriptPath = () => {
 };
 
 const selectPort = async () => {
-    return await getPort({port: 58989});
+    return await portfinder.getPortPromise({port: 58989});
 };
 
 const createPyProc = (config) => {
     let script = getScriptPath();
     const config_str = JSON.stringify(config);
     config_str.replace("\"", "'");
-    selectPort().then((res) => {
-        let port = '' + res;
+    /*selectPort().then((res) => {*/
+        let port = '' + 58989;
         pyPort = port;
         global.port = port;
         if (guessPackaged()) {
@@ -64,19 +65,28 @@ const createPyProc = (config) => {
             console.log("packaged");
             pyProc.on('exit', () => {
                 console.log("Exiting child process");
-            })
+            });
+            console.log("packaged");
         } else {
             pyProc = require('child_process').spawn('python', [script, exec_path, port, config_str]);
             console.log("not packaged")
         }
 
         if (pyProc != null) {
-            pyProc.stdout.on('data', function(data) {
+            pids.push(pyProc.pid);
+            console.log(pyProc.pid);
+            pyProc.stdout.on('data', (data) => {
                 console.log(data.toString());
+            });
+            pyProc.stderr.on('data', (data) => {
+                console.log(data.toString());
+            });
+            pyProc.on('exit', () => {
+                console.log("Exiting child process");
             });
             console.log('child process success on port ' + port);
         }
-    });
+    /*});*/
 };
 
 const killProcesses = () => {
@@ -97,13 +107,6 @@ function createWindow(config) {
     app.commandLine.appendSwitch('force-device-scale-factor', '1');
     app.commandLine.appendSwitch ("disable-http-cache");
 
-    if (config.disableHardwareAcceleration){
-        app.commandLine.appendSwitch("disable-gpu");
-        app.commandLine.appendSwitch('disable-gpu-compositing');
-        app.commandLine.appendSwitch('disable-accelerated-video-decode');
-        app.commandLine.appendSwitch('disable-accelerated-video-encode');
-    }
-
     let prevWindowState = windowStateKeeper({
         defaultWidth: 500,
         defaultHeight: 640
@@ -118,7 +121,7 @@ function createWindow(config) {
     if (config.alwaysOnTop){
         mainWindow.setAlwaysOnTop(true, "screen-saver", 1);
         mainWindow.setVisibleOnAllWorkspaces(true);
-        mainWindow.setFullScreenable(false);
+        mainWindow.fullScreenable = false;
     }
     mainWindow.loadURL(isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../build/index.html')}`);
     mainWindow.on('closed', () => {
@@ -189,12 +192,16 @@ function reloadApp(){
     if (!isDev) createPyProc(config);
 }
 
+global.config = loadConfig();
+if (config.disableHardwareAcceleration){
+    app.disableHardwareAcceleration();
+}
+
 app.on('ready', () =>{
     if (!app.requestSingleInstanceLock()){
         app.quit();
     }
     else{
-        global.config = loadConfig();
         global.updateConfig = updateConfig;
         createPyProc(config);
         createWindow(config);
@@ -214,6 +221,10 @@ app.on('activate', () => {
     if (mainWindow === null) {
         createWindow();
     }
+});
+
+app.on('window-all-closed', () => {
+    killProcesses();
 });
 
 unhandled();

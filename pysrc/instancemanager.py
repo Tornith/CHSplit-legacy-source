@@ -46,7 +46,8 @@ class InstanceManager(object):
         funcs = {'i': (int, self.instance.read_int),
                  'd': (float, self.instance.read_double),
                  'b': (int, self.instance.read_char),
-                 's': (str, self.instance.read_string)}
+                 's': (str, self.instance.read_string),
+                 'a': (str, self.instance.read_string)}
         ptr_info = self.offsets["values"][name] if not raw else name
         var_type = ptr_info["var_type"]
         static = ptr_info["offsets"] is None
@@ -55,13 +56,21 @@ class InstanceManager(object):
             if var_type == 's':
                 value = funcs[var_type][1](int(address, 16), 1000)[0]
                 value = str(value).decode("utf-16", errors="ignore").split("\x00")[0]
+            elif var_type == 'a':
+                value = funcs[var_type][1](int(address, 16), 1000)[0]
+                value = str(value).split("\x00")[0]
             else:
                 value = funcs[var_type][0](funcs[var_type][1](int(address, 16))[0])
         except WindowsError:
-            raise InvalidAddressException
+            raise InvalidValueException
         return value
 
 
 class InvalidAddressException(WindowsError):
+    """Raised when the instance manager attempts to access an invalid address"""
+    pass
+
+
+class InvalidValueException(WindowsError):
     """Raised when the instance manager attempts to access an invalid address"""
     pass

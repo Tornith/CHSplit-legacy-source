@@ -10,7 +10,7 @@ class Mainbar extends Component {
                 <NotificationBar notifications={this.props.notifications}/>
                 {(((this.props.renderState === "game" || this.props.renderState === "endscreen") && this.props.song != null && this.props.game != null)) &&
                     <React.Fragment>
-                        <SongInfo song={this.props.song} game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
+                        <SongInfo song={this.props.song} game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} gameState={this.props.renderState}/>
                         <Sections song={this.props.song} game={this.props.game} sectionHolder={this.props.sectionHolder} preferences={this.props.preferences} />
                     </React.Fragment>
                 }

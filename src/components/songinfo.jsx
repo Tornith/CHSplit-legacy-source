@@ -19,7 +19,7 @@ class SongInfo extends PureComponent {
                 <div className={"panel-progress" + (this.props.preferences.showSongProgressBar ? "" : " hidden")} id="panel-progress">
                     <span className="song-time">{this.formatTime(Math.min(this.props.game.time, this.props.song.length)) + " / " + this.formatTime(this.props.song.length)}</span>
                     <div className="song-progress-bar-wrapper">
-                        <div className="song-progress-bar" style={{width: (100 * (this.props.game.time > 0 ? this.props.game.time : 0) / this.props.song.length) + "%"}}>
+                        <div className="song-progress-bar" style={{width: ((this.props.gameState === "endscreen") ? 100 : (100 * (this.props.game.time > 0 ? this.props.game.time : 0) / this.props.song.length)) + "%"}}>
                             <div className="stripes"/>
                         </div>
                     </div>
@@ -75,7 +75,9 @@ class SongInfo extends PureComponent {
             case 0x03: outputStr += "Guitar Coop"; break;
             case 0x04: outputStr += "6 Fret Guitar"; break;
             case 0x05: outputStr += "6 Fret Bass"; break;
+            case 0x06: outputStr += "Drums"; break;
             case 0x07: outputStr += "Keys"; break;
+            case 0xFF: outputStr += "No Part"; break;
             default: break;
         }
         if (outputStr !== "") return " (" + outputStr + ")";

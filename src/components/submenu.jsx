@@ -3,6 +3,7 @@ import appInfo from '../appinfo.json';
 import iconSpinner from '../svg/icon-spinner.svg';
 import {Checkbox, ListGroupAJAX, RadioGroup} from './formcomponents';
 import fetch from "./fetchWithTimeout";
+import {compareVersions} from './utils'
 
 class Submenu extends Component {
     constructor(props){
@@ -13,6 +14,7 @@ class Submenu extends Component {
             <div className={"submenu-wrapper" + (this.props.preferences.showAnimations ? "" : " no-anim") + ((this.props.openedSubmenu == null) ? "" : " opened")}>
                 <SubmenuOptions opened={this.props.openedSubmenu === "Options"} preferences={this.props.preferences} onPreferenceUpdate={this.props.onPreferenceUpdate} socket={this.props.socket} manualRequest={this.props.manualRequest}/>
                 <SubmenuAbout opened={this.props.openedSubmenu === "About"} newUpdate={this.props.newUpdate} checkForUpdates={this.props.checkForUpdates} openLink={this.props.openLink} getNewVersion={this.props.getNewVersion}/>
+                <SubmenuSplits opened={this.props.openedSubmenu === "Splits"} />
             </div>
         );
     }
@@ -52,6 +54,14 @@ class SubmenuOptions extends Component {
             localList = list;
         });
         const promiseAJAX = this.getAJAXGameVersionList(ajaxURI).then((list) => {
+            list.forEach(header => {
+                header.options = header.options.filter(opt => {
+                    let min_ver = ("min_version" in opt) ? opt["min_version"] : "-1.0";
+                    let max_ver = ("max_version" in opt) ? opt["max_version"] : "9999.0";
+                    return compareVersions(appInfo.version, min_ver, true) >= 0 &&
+                        compareVersions(appInfo.version, max_ver, true) < 0;
+                });
+            });
             ajaxList = list;
         });
         return new Promise(((resolve, reject) => {
@@ -77,7 +87,14 @@ class SubmenuOptions extends Component {
                 Object.keys(grouped).forEach((key) => {
                     let section = {header: key, options:[]};
                     grouped[key].forEach((entry) => {
-                        section.options.push({label: entry["game_label"], value: entry["game_version"], local: true});
+                        if (compareVersions(appInfo.version, entry["min_version"], true) >= 0 &&
+                            compareVersions(appInfo.version, entry["max_version"], true) < 0) {
+                            section.options.push({
+                                label: entry["game_label"],
+                                value: entry["game_version"],
+                                local: true
+                            });
+                        }
                     });
                     localList.push(section);
                 });
@@ -193,6 +210,19 @@ class SubmenuAbout extends Component {
             console.error("Connection error: Couldn't check for updates " + e);
         });
     };
+}
+
+class SubmenuSplits extends Component {
+    render() {
+        return (
+            <div className={"submenu-content " + (this.props.opened ? "opened" : "")}>
+                <h2>Splits Browser</h2>
+                <div className="submenu-subcontent">
+
+                </div>
+            </div>
+        );
+    }
 }
 
 export default Submenu;

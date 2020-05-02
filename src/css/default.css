@@ -233,6 +233,11 @@ aside.opened .sidebar-menu{
     opacity: 1;
 }
 
+aside .sidebar-menu-top{
+    margin-bottom: auto;
+    margin-top: calc(var(--sidebar-menu-button-height) / 2);
+}
+
 .sidebar-menu{
     display: flex;
     width: 100%;
@@ -818,6 +823,7 @@ main.sidebarOpened::after{
     width: 100%;
     position: relative;
     transition: height 0.075s, opacity 0.075s;
+    z-index: 10;
 }
 .input-list-dropdown.collapsed{
     pointer-events: none;

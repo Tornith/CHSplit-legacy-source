@@ -7,8 +7,8 @@ import fetch from './components/fetchWithTimeout';
 import appInfo from "./appinfo";
 import Notification from "./components/notification";
 import io from 'socket.io-client';
+import {getNewVersion, isDictEmpty, openLink, compareVersions} from './components/utils';
 
-let open = window.require("open");
 if (process.env.NODE_ENV !== 'production') {
     const whyDidYouRender = require('@welldone-software/why-did-you-render/dist/no-classes-transpile/umd/whyDidYouRender.min.js');
     whyDidYouRender(React);
@@ -127,6 +127,9 @@ class App extends Component {
         });
         this.state.socket.on('ERROR_MESSAGE', (er) => {
             this.handleRaisedError(JSON.parse(er));
+        });
+        this.state.socket.on('CONSOLE_MESSAGE', (msg) => {
+            console.log(msg);
         });
     };
 
@@ -339,7 +342,9 @@ class App extends Component {
 
         await fetch(req).then((response) => {
             if (response.ok){
-                return response.json();
+                const json = response.json();
+                console.log(json);
+                return json;
             }
             else{
                 console.error("HTTP Error: Couldn't fetch version data");
@@ -361,55 +366,5 @@ class App extends Component {
         if(event.keyCode === 27 && this.state.sidebarOpened) this.handleToggleSidebar()
     };
 }
-
-const compareVersions = (a, b) => {
-    const hierarchy = ["dev", "alpha", "beta", "rc"];
-    const regex = new RegExp(`(\\d+)(\\.\\d+)+((-)([(` + hierarchy.join(")(") + `)]+)(\\.\d+)*)?`, 'gi');
-    if (!a.match(regex) || !b.match(regex)) return undefined;
-    if (a === b) return 0;
-
-    const softParseInt = (int) => isNaN(parseInt(int)) ? int : parseInt(int);
-    const splitVersionArray = (arr) => arr.split('-').map(value => value.split('.'))
-        .map((value) => value.map(value => softParseInt(value)));
-    const arrCmp = (arr1, arr2) => {
-        const modArr1 = arr1.concat(Array(Math.max(0, arr2.length - arr1.length)).fill(0));
-        const modArr2 = arr2.concat(Array(Math.max(0, arr1.length - arr2.length)).fill(0));
-        return modArr1.map((val, index) =>
-            (parseInt(val) - parseInt(modArr2[index]))
-        ).find(value => value !== 0) || 0;
-    };
-
-    const ver1 = splitVersionArray(a);
-    const ver2 = splitVersionArray(b);
-
-    const baseVer = arrCmp(ver1[0], ver2[0]);
-
-    if (baseVer === 0 && (ver1.length > 1 || ver2.length > 1)){
-        if (ver1.length !== ver2.length) return (ver1.length < ver2.length) ? 1 : -1;
-        else {
-            const subVerPhase = hierarchy.indexOf(ver1[1][0]) - hierarchy.indexOf(ver2[1][0]);
-            if (subVerPhase !== 0) return subVerPhase;
-            else {
-                ver1[1].shift();
-                ver2[1].shift();
-                return arrCmp(ver1[1], ver2[1]);
-            }
-        }
-    }
-    return baseVer;
-};
-
-const getNewVersion = () => {
-    const newVersionURL = "https://github.com/Tornith/CHSplit/releases/latest";
-    openLink(newVersionURL);
-};
-
-const openLink = (link) => {
-    open(link);
-};
-
-const isDictEmpty = (dict) => {
-    return Object.keys(dict).length === 0;
-};
 
 export default App;

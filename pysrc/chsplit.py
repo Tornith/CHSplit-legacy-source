@@ -4,7 +4,7 @@ from socketio import Server, WSGIApp
 from gevent import pywsgi, monkey
 from geventwebsocket.handler import WebSocketHandler
 from finitestatemachine import FSMWithMemory, State
-from instancemanager import InstanceManager, InvalidAddressException
+from instancemanager import InstanceManager, InvalidAddressException, InvalidValueException
 from songdata import SongData
 from gamedata import GameData
 from splitfile import SplitFile
@@ -14,6 +14,8 @@ import time
 import logging
 import json
 import argparse
+import atexit
+import subprocess
 
 # Gevent monkey patch =====================
 
@@ -212,8 +214,15 @@ def init_entry(memory, _):
     memory["instance_manager"] = InstanceManager(memory["offsets"], logger=log_main)
 
 
+def process_exists(process_name):
+    call = 'TASKLIST', '/FI', 'imagename eq %s' % process_name
+    output = subprocess.check_output(call)
+    last_line = output.strip().split('\r\n')[-1]
+    return last_line.lower().startswith(process_name.lower())
+
+
 def init_do(memory):
-    if memory["instance_manager"].instance is None and not memory["instance_manager"].attach():
+    if memory["instance_manager"].instance is None and (not process_exists('Clone Hero.exe') or not memory["instance_manager"].attach()):
         time.sleep(0.5)
         memory["late_start"] = True
         return False
@@ -231,10 +240,20 @@ state_init = State("init", on_entry=init_entry, do=init_do, on_exit=init_exit)
 # State: Menu =============================
 
 def menu_do(memory):
-    in_menu = memory["instance_manager"].get_value("in_menu") != 0
-    in_game = memory["instance_manager"].get_value("in_game") != 0
+    scene = None
+    retry_count = 0
+    while scene is None:
+        try:
+            scene = memory["instance_manager"].get_value("scene")
+        except InvalidAddressException:
+            log_main.exception("Couldn't access address of 'scene', retrying...")
+            retry_count += 1
+            if retry_count == 5:
+                fsm_main.transition(state_init, True, False)
+                return "", False
+            time.sleep(0.5)
     in_practice = memory["instance_manager"].get_value("in_practice") != 0
-    return in_menu, in_game, in_practice
+    return scene, in_practice
 
 
 state_menu = State("menu", do=menu_do)
@@ -322,14 +341,24 @@ def game_do(memory):
         log_main.error("Unexpected pointer change")
         raise FSMException("Unexpected pointer change")
 
-    in_menu = memory["instance_manager"].get_value("in_menu") == 1
-    in_game = memory["instance_manager"].get_value("in_game") == 1
+    scene = None
+    retry_count = 0
+    while scene is None:
+        try:
+            scene = memory["instance_manager"].get_value("scene")
+        except InvalidAddressException:
+            log_main.exception("Couldn't access address of 'scene', retrying...")
+            retry_count += 1
+            if retry_count == 10:
+                fsm_main.transition(state_init, True, False)
+                return "", False
+            time.sleep(0.5)
     in_practice = memory["instance_manager"].get_value("in_practice") == 1
 
-    if (not in_menu and in_game) and memory["previous_game_data"]["time"] > memory["game_data"].time:
+    if scene == "Gameplay" and memory["previous_game_data"]["time"] > memory["game_data"].time:
         game_restart(memory)
 
-    return in_menu, in_game, in_practice
+    return scene, in_practice
 
 
 def game_exit(memory, next_state):
@@ -352,6 +381,19 @@ def game_exit(memory, next_state):
 
 def game_restart(memory):
     log_main.info("Game restart")
+
+    new_path = memory["instance_manager"].get_value("path")
+    if os.path.exists(new_path + "/notes.chart"):
+        new_path = new_path + "/notes.chart"
+    elif os.path.exists(new_path + "/notes.mid"):
+        new_path = new_path + "/notes.mid"
+    else:
+        send_err_msg(0x3, "Couldn't retrieve the notes.chart file of the current song.")
+        log_main.error("Couldn't retrieve notes file")
+        raise FSMException("Couldn't retrieve notes file")
+
+    if new_path != memory["song_data"].chart_path:
+        fsm_main.transition(state_pregame)
     if "game_data" in memory:
         log_main.info("Clearing game data...")
         memory["game_data"] = GameData(logger=log_main)
@@ -409,10 +451,14 @@ def ends_entry(memory, _):
 
 
 def ends_do(memory):
-    in_menu = memory["instance_manager"].get_value("in_menu") != 0
-    in_game = memory["instance_manager"].get_value("in_game") != 0
+    scene = None
+    while scene is None:
+        try:
+            scene = memory["instance_manager"].get_value("scene")
+        except InvalidAddressException:
+            log_main.exception("Couldn't access address of 'scene', retrying...")
     in_practice = memory["instance_manager"].get_value("in_practice") != 0
-    return in_menu, in_game, in_practice
+    return scene, in_practice
 
 
 def ends_exit(memory, _):
@@ -433,12 +479,14 @@ state_endscreen = State("endscreen", on_entry=ends_entry, do=ends_do, on_exit=en
 # State: Practice =========================
 
 def practice_do(memory):
+    scene = None
+    while scene is None:
+        try:
+            scene = memory["instance_manager"].get_value("scene")
+        except InvalidAddressException:
+            log_main.exception("Couldn't access address of 'scene', retrying...")
     in_practice = memory["instance_manager"].get_value("in_practice") != 0
-    if not in_practice:
-        time.sleep(0.5)
-    in_menu = memory["instance_manager"].get_value("in_menu") != 0
-    in_game = memory["instance_manager"].get_value("in_game") != 0
-    return in_menu, in_game, in_practice
+    return scene, in_practice
 
 
 def practice_exit(_, next_state):
@@ -465,18 +513,18 @@ def send_state_message(memory, next_state):
 
 transitions = {(state_preinit, True): state_init,
                (state_init, True): state_menu,
-               (state_menu, (False, True, False)): state_pregame,
-               (state_menu, (False, True, True)): state_practice,
+               (state_menu, ("Gameplay", False)): state_pregame,
+               (state_menu, ("Gameplay", True)): state_practice,
                (state_pregame, True): state_game,
-               (state_game, (False, False, False)): state_endscreen,
-               (state_game, (True, False, False)): state_menu,
-               (state_game, (False, True, True)): state_practice,
-               (state_endscreen, (True, False, False)): state_menu,
-               (state_endscreen, (False, True, False)): state_pregame,
-               (state_endscreen, (False, True, True)): state_practice,
-               (state_practice, (False, True, False)): state_pregame,
-               (state_practice, (True, False, False)): state_menu,
-               (state_practice, (True, False, True)): state_menu}
+               (state_game, ("EndOfSong", False)): state_endscreen,
+               (state_game, ("Main Menu", False)): state_menu,
+               (state_game, ("Gameplay", True)): state_practice,
+               (state_endscreen, ("Main Menu", False)): state_menu,
+               (state_endscreen, ("Gameplay", False)): state_pregame,
+               (state_endscreen, ("Gameplay", True)): state_practice,
+               (state_practice, ("Gameplay", False)): state_pregame,
+               (state_practice, ("Main Menu", False)): state_menu,
+               (state_practice, ("Main Menu", True)): state_menu}
 
 
 # Loop ====================================
@@ -492,13 +540,19 @@ def main_loop(fsm):
                 forced_exit = fsm.tick()
             except InvalidAddressException:
                 fsm.transition(state_init, False, False)
+                log_main.exception("Invalid Address Exception")
+            except InvalidValueException:
+                fsm.transition(state_init, False, False)
+                log_main.exception("Invalid Value Exception")
             time.sleep(0.1)
     except FSMException as e:
         log_main.critical(e, exc_info=True)
+        shutdown_server()
         sys.exit(1)
     except Exception as e:
         send_err_msg(0x0, "Unhandled exception error.")
         log_main.critical(e, exc_info=True)
+        shutdown_server()
         sys.exit(2)
 
 
@@ -516,6 +570,8 @@ if __name__ == '__main__':
                              on_every_exit=send_state_message)
     thread_fsm = threading.Thread(target=main_loop, args=(fsm_main,))
     thread_fsm.start()
+
+    atexit.register(shutdown_server)
 
     wsgi_server = pywsgi.WSGIServer(('127.0.0.1', args.port), app, handler_class=WebSocketHandler)
     wsgi_server.serve_forever()

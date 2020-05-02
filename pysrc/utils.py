@@ -133,7 +133,9 @@ def get_local_offset_file_list(path):
             if yaml is not None:
                 output.append({'game_version': yaml['game_version'],
                                'game_label': yaml['game_label'],
-                               'file_category': yaml['file_category']})
+                               'file_category': yaml['file_category'],
+                               'min_version': yaml['min_version'] if 'min_version' in yaml else "-1.0",
+                               'max_version': yaml['max_version'] if 'max_version' in yaml else "9999.0"})
     return output
 
 
