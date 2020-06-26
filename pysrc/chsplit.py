@@ -1,21 +1,23 @@
-import sys
-import threading
-from socketio import Server, WSGIApp
-from gevent import pywsgi, monkey
-from geventwebsocket.handler import WebSocketHandler
-from finitestatemachine import FSMWithMemory, State
-from instancemanager import InstanceManager, InvalidAddressException, InvalidValueException
-from songdata import SongData
-from gamedata import GameData
-from splitfile import SplitFile
-import utils
-import os
-import time
-import logging
-import json
 import argparse
 import atexit
+import json
+import logging
+import os
 import subprocess
+import sys
+import threading
+import time
+
+from gevent import pywsgi, monkey
+from geventwebsocket.handler import WebSocketHandler
+from socketio import Server, WSGIApp
+
+import utils
+from finitestatemachine import FSMWithMemory, State, FSMException
+from gamedata import GameData
+from instancemanager import InstanceManager, InvalidAddressException, InvalidValueException
+from songdata import SongData
+from splitfile import SplitFile
 
 # Gevent monkey patch =====================
 
@@ -38,6 +40,7 @@ parser = argparse.ArgumentParser(prog="chsplit", description="The CHSplit backen
 parser.add_argument("path", type=str, help="the CHSplit executable path")
 parser.add_argument("port", type=int, help="the port to run the backend API at")
 parser.add_argument("config", type=json_str, help="the config in JSON format")
+parser.add_argument("version", type=str, help="the current version of CHSplit")
 args = parser.parse_args()
 
 # Logging =================================
@@ -149,14 +152,14 @@ def connect(sid, environ):
         log_main.debug("Shutdown request")
         shutdown_server(None)
     global client_connected
-    log_main.debug('connect ', sid)
+    log_main.debug('connect {}'.format(sid))
     client_connected = True
 
 
 @sio.event
 def disconnect(sid):
     global client_connected
-    log_main.debug('disconnect ', sid)
+    log_main.debug('disconnect {}'.format(sid))
     client_connected = False
 
 
@@ -268,6 +271,7 @@ def pregame_do(memory):
         log_main.error("Couldn't retrieve song ini")
         raise FSMException("Couldn't retrieve song ini")
     song_info = {}
+    err = "Unknown"
     try:
         err = "Name"
         song_info["name"] = song_ini["song"]["name"]
@@ -300,7 +304,7 @@ def pregame_do(memory):
     memory["game_data"] = GameData(logger=log_main)
     memory["split_file"] = \
         SplitFile(song_info["name"], song_info["speed"], memory["song_data"].get_song_hash(),
-                  exec_path=args.path, logger=log_main)
+                  exec_path=args.path, version=args.version, logger=log_main)
     log_main.info("Chart hash: {}".format(memory["song_data"].get_song_hash()))
     log_main.info("Chart sections: {}".format(memory["song_data"].to_dict()["sections"]))
     log_main.debug("Loaded splits: {}".format(memory["split_file"].splits))
@@ -575,8 +579,3 @@ if __name__ == '__main__':
 
     wsgi_server = pywsgi.WSGIServer(('127.0.0.1', args.port), app, handler_class=WebSocketHandler)
     wsgi_server.serve_forever()
-
-
-class FSMException(Exception):
-    """Raised when an expected exception happens in the FSM"""
-    pass

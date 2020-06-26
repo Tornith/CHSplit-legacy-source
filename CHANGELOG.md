@@ -1,6 +1,3 @@
-### v0.3 - Split Viewer and Exporter
-    
-
 ### v0.2.2 - CHLoader Compatibility
     - Added - CHLoader Compatibility
     - Added - Minimum and maximum version filtering for individual offset files in the offset selection for future compatibility

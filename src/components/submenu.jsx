@@ -216,7 +216,7 @@ class SubmenuSplits extends Component {
     render() {
         return (
             <div className={"submenu-content " + (this.props.opened ? "opened" : "")}>
-                <h2>Splits Browser</h2>
+                <h2>Split Browser</h2>
                 <div className="submenu-subcontent">
 
                 </div>

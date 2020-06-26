@@ -6,12 +6,13 @@ from utils import log
 
 
 class SplitFile(object):
-    def __init__(self, song_name, speed, chart_hash, exec_path=".", logger=None):
+    def __init__(self, song_name, speed, chart_hash, exec_path=".", version="-1", logger=None):
         self.name = song_name
         self.speed = speed
         self.hash = chart_hash
         self.splits = {}
         self.exec_path = exec_path
+        self.version = version
         self.logger = logger
         self.load_file()
 
@@ -55,3 +56,6 @@ class SplitFile(object):
             return self.splits[(difficulty, instrument)][0][2]
         else:
             return {}
+
+    def legacy_import(self, split_file):
+        pass  # todo

@@ -101,3 +101,8 @@ class FSMWithMemory(FiniteStateMachine):
         if exec_entry:
             self.on_every_entry(self.memory, previous_state)
         next_state.on_entry(self.memory, previous_state)
+
+
+class FSMException(Exception):
+    """Raised when an expected exception happens in the FSM"""
+    pass

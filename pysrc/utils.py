@@ -1,9 +1,11 @@
+import os
+import re
+
+import configparser
 import mido
 import mido.messages.checks
-import re
-import configparser
 import requests
-import os
+from packaging.version import parse as parse_version
 from yaml import safe_load, YAMLError
 
 
@@ -23,7 +25,7 @@ def get_section_info(string):
     section_name = ""
     for s in range(4, len(string)):
         section_name += string[s]
-        if s != (len(string)-1):
+        if s != (len(string) - 1):
             section_name += " "
     return int(string[0]), section_name[:-1].decode("utf-8", 'ignore')
 
@@ -34,7 +36,7 @@ def get_chart_sections(file_path):
     cur_index = file_list.index("[Events]\n")
     section_arr = []
     while "}" not in file_list[cur_index]:
-        if re.match('[ \s]*\d+ = E "section .+"', file_list[cur_index]):
+        if re.match('[ \\s]*\\d+ = E "section .+"', file_list[cur_index]):
             section_arr.append(get_section_info(file_list[cur_index]))
         cur_index += 1
     return section_arr
@@ -128,7 +130,7 @@ def get_local_offset_file_list(path):
     file_list = os.listdir(path)
     output = []
     for f in file_list:
-        if re.match('(offsets\.).+(\.yml)', f):
+        if re.match('(offsets\\.).+(\\.yml)', f):
             yaml = load_yaml_file(path + "/" + f)
             if yaml is not None:
                 output.append({'game_version': yaml['game_version'],
@@ -145,11 +147,11 @@ def reverse_insort(a, x, lo=0, hi=None):
     if hi is None:
         hi = len(a)
     while lo < hi:
-        mid = (lo+hi)//2
+        mid = (lo + hi) // 2
         if x > a[mid]:
             hi = mid
         else:
-            lo = mid+1
+            lo = mid + 1
     a.insert(lo, x)
 
 
@@ -169,6 +171,13 @@ def log(logger, level, msg):
             logger.debug("I messed up something lmao -- {}".format(msg))
 
 
-def generate_default_cfg():
-    with open("config.ini", 'w+') as config:
-        config.write("[config]\ngame_version=23_2_2\ndebug_mode=true")
+def compare_versions(str1, str2, ignore_dev=False):
+    if ignore_dev:
+        str1 = str1.split('-')[0]
+        str2 = str2.split('-')[0]
+    if parse_version(str1) == parse_version(str2):
+        return 0
+    elif parse_version(str1) > parse_version(str2):
+        return 1
+    else:
+        return -1

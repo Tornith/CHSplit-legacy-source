@@ -52,13 +52,15 @@ const selectPort = async () => {
 const createPyProc = (config) => {
     let script = getScriptPath();
     const config_str = JSON.stringify(config);
+    const app_info = JSON.parse(fs.readFileSync(path.join(exec_path, "src/appinfo.json")));
+
     config_str.replace("\"", "'");
     /*selectPort().then((res) => {*/
         let port = '' + 58989;
         pyPort = port;
         global.port = port;
         if (guessPackaged()) {
-            pyProc = require('child_process').execFile(script, [exec_path, port, config_str], function(err, stdout, stderr) {
+            pyProc = require('child_process').execFile(script, [exec_path, port, config_str, app_info.version], function(err, stdout, stderr) {
                 console.log(stdout);
                 console.log(stderr);
             });
@@ -68,13 +70,12 @@ const createPyProc = (config) => {
             });
             console.log("packaged");
         } else {
-            pyProc = require('child_process').spawn('python', [script, exec_path, port, config_str]);
+            pyProc = require('child_process').spawn('python', [script, exec_path, port, config_str, app_info.version]);
             console.log("not packaged")
         }
 
         if (pyProc != null) {
             pids.push(pyProc.pid);
-            console.log(pyProc.pid);
             pyProc.stdout.on('data', (data) => {
                 console.log(data.toString());
             });

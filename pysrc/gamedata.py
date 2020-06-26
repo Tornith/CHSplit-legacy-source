@@ -29,6 +29,7 @@ class GameData(object):
 
     def get_current_data(self, instance_manager, song):
         previous_section = self.activeSection
+        err = "Unknown"
         try:
             err = "Score"
             self.score = instance_manager.get_value("score")
