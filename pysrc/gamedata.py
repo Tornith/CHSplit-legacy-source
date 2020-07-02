@@ -7,6 +7,7 @@ class GameData(object):
         self.position = -1
         self.time = -1
         self.splits = {}
+        self.player = u"Player"
         self.activeSection = None
         self.logger = logger
 
@@ -19,6 +20,7 @@ class GameData(object):
             "position": self.position,
             "time": self.time,
             "splits": self.splits,
+            "player": self.player,
             "activeSection": self.activeSection
         }
 
@@ -37,6 +39,8 @@ class GameData(object):
             self.position = instance_manager.get_value("position")
             err = "Time"
             self.time = instance_manager.get_value("time")
+            err = "Player Name"
+            self.player = instance_manager.get_value("player_name")
             err = "Active section"
             self.activeSection = song.get_section_from_time(self.position)
             if previous_section is not None and \

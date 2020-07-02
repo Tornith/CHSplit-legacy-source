@@ -6,7 +6,7 @@ class SongInfo extends PureComponent {
             <React.Fragment>
                 <div className={"panel-song" + (this.props.preferences.hideTotalScore ? " small" : "")} id="panel-song">
                     <div className="panel-info">
-                        <span className="song-name">{this.props.song.name + this.formatSpeed(this.props.song.speed) + this.formatDifficulty(this.props.song.difficulty) + this.formatInstrument(this.props.song.instrument) + this.formatModifiersString(this.props.song.modifiers)}</span>
+                        <span className="song-name">{this.props.song.artist + " - " + this.props.song.name + this.formatSpeed(this.props.song.speed) + this.formatDifficulty(this.props.song.difficulty) + this.formatInstrument(this.props.song.instrument) + this.formatModifiersString(this.props.song.modifiers)}</span>
                         <div className={"spt" + (this.props.preferences.hideTotalScore ? " hidden" : "")} />
                     </div>
                     <div className={"panel-score" + (this.props.preferences.hideTotalScore ? " hidden" : "")}>

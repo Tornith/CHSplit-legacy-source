@@ -8,6 +8,7 @@ from utils import log
 class SongData(object):
     def __init__(self, song_info, logger=None):
         self.name = song_info["name"]
+        self.artist = song_info["artist"]
         self.length = song_info["length"]
         self.chart_path = song_info["chart_path"]
         self.speed = song_info["speed"]
@@ -23,6 +24,7 @@ class SongData(object):
     def to_dict(self):
         return {
             "name": self.name,
+            "artist": self.artist,
             "length": self.length,
             "sections": self.sections,
             "chart_path": self.chart_path,
@@ -31,13 +33,6 @@ class SongData(object):
             "difficulty": self.difficulty,
             "modifiers": self.modifiers
         }
-
-    def get_song_hash(self):
-        hash_md5 = hashlib.md5()
-        with open(self.chart_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_md5.update(chunk)
-        return base64.b64encode(hash_md5.hexdigest(), "_-")
 
     def get_sections(self):
         if re.match('.+\.chart', self.chart_path):
@@ -61,3 +56,14 @@ class SongData(object):
             else:
                 return cur_section[0]
         return cur_section[0] if (len(self.sections) > 0) else None
+
+    def get_song_id(self):
+        conv_name = "".join(x for x in self.name if x.isalnum())
+        return "{}_{}".format(conv_name, self.get_song_hash()[:8])
+
+    def get_song_hash(self):
+        hash_md5 = hashlib.md5()
+        with open(self.chart_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return base64.b64encode(hash_md5.hexdigest(), "_-")

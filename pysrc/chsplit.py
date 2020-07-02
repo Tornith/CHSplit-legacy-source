@@ -18,6 +18,7 @@ from gamedata import GameData
 from instancemanager import InstanceManager, InvalidAddressException, InvalidValueException
 from songdata import SongData
 from splitfile import SplitFile
+from splitdatabase import SplitDB
 
 # Gevent monkey patch =====================
 
@@ -117,7 +118,7 @@ def request_data(_, data_id):
         send_data(fsm_main.current_state.name, "state", "REQUEST_RESPONSE_STATE")
     elif data_id == "song":
         song_data = fsm_main.memory["song_data"].to_dict()
-        pb_data = fsm_main.memory["split_file"].get_personal_best(song_data["instrument"], song_data["difficulty"])
+        pb_data = fsm_main.memory["split_db"].get_personal_best(fsm_main.memory["song_data"])
         log_main.debug("song: {}".format(song_data))
         log_main.debug("pb: {}".format(pb_data))
         send_data([song_data, pb_data], ["song", "pb"], "REQUEST_RESPONSE_SONG")
@@ -216,6 +217,9 @@ def init_entry(memory, _):
     memory["offsets"] = offsets
     memory["instance_manager"] = InstanceManager(memory["offsets"], logger=log_main)
 
+    # Initialize the DB
+    memory["split_db"] = SplitDB(exec_path=args.path, version=args.version, logger=log_main)
+
 
 def process_exists(process_name):
     call = 'TASKLIST', '/FI', 'imagename eq %s' % process_name
@@ -243,18 +247,10 @@ state_init = State("init", on_entry=init_entry, do=init_do, on_exit=init_exit)
 # State: Menu =============================
 
 def menu_do(memory):
-    scene = None
-    retry_count = 0
-    while scene is None:
-        try:
-            scene = memory["instance_manager"].get_value("scene")
-        except InvalidAddressException:
-            log_main.exception("Couldn't access address of 'scene', retrying...")
-            retry_count += 1
-            if retry_count == 5:
-                fsm_main.transition(state_init, True, False)
-                return "", False
-            time.sleep(0.5)
+    scene = get_scene(memory)
+    if scene is None:
+        fsm_main.transition(state_init, True, False)
+        return "", False
     in_practice = memory["instance_manager"].get_value("in_practice") != 0
     return scene, in_practice
 
@@ -275,6 +271,8 @@ def pregame_do(memory):
     try:
         err = "Name"
         song_info["name"] = song_ini["song"]["name"]
+        err = "Artist"
+        song_info["artist"] = song_ini["song"]["artist"]
         err = "Length"
         song_info["length"] = memory["instance_manager"].get_value("length")
         err = "Path"
@@ -302,18 +300,18 @@ def pregame_do(memory):
     log_main.info("Song info: {}".format(song_info))
     memory["song_data"] = SongData(song_info, logger=log_main)
     memory["game_data"] = GameData(logger=log_main)
-    memory["split_file"] = \
-        SplitFile(song_info["name"], song_info["speed"], memory["song_data"].get_song_hash(),
-                  exec_path=args.path, version=args.version, logger=log_main)
+    # memory["split_file"] = \
+    #     SplitFile(song_info["name"], song_info["speed"], memory["song_data"].get_song_hash(),
+    #               exec_path=args.path, version=args.version, logger=log_main)
     log_main.info("Chart hash: {}".format(memory["song_data"].get_song_hash()))
     log_main.info("Chart sections: {}".format(memory["song_data"].to_dict()["sections"]))
-    log_main.debug("Loaded splits: {}".format(memory["split_file"].splits))
+    # log_main.debug("Loaded splits: {}".format(memory["split_file"].splits))
     return True
 
 
 def pregame_exit(memory, _):
     song_data = memory["song_data"].to_dict()
-    pb_data = memory["split_file"].get_personal_best(song_data["instrument"], song_data["difficulty"])
+    pb_data = memory["split_db"].get_personal_best(memory["song_data"])
     game_data = memory["game_data"].to_dict()
     send_data([song_data, pb_data], ["song", "pb"], "TRANSFER_SONG_DATA")
     send_data(game_data, "game", "TRANSFER_GAME_DATA")
@@ -345,18 +343,10 @@ def game_do(memory):
         log_main.error("Unexpected pointer change")
         raise FSMException("Unexpected pointer change")
 
-    scene = None
-    retry_count = 0
-    while scene is None:
-        try:
-            scene = memory["instance_manager"].get_value("scene")
-        except InvalidAddressException:
-            log_main.exception("Couldn't access address of 'scene', retrying...")
-            retry_count += 1
-            if retry_count == 10:
-                fsm_main.transition(state_init, True, False)
-                return "", False
-            time.sleep(0.5)
+    scene = get_scene(memory)
+    if scene is None:
+        fsm_main.transition(state_init, True, False)
+        return "", False
     in_practice = memory["instance_manager"].get_value("in_practice") == 1
 
     if scene == "Gameplay" and memory["previous_game_data"]["time"] > memory["game_data"].time:
@@ -375,9 +365,9 @@ def game_exit(memory, next_state):
         if "game_data" in memory:
             log_main.info("Clearing game data...")
             del memory["game_data"]
-        if "split_file" in memory:
-            log_main.info("Clearing split file data...")
-            del memory["split_file"]
+        # if "split_file" in memory:
+        #     log_main.info("Clearing split file data...")
+        #     del memory["split_file"]
     else:
         send_single("{}:{}".format(memory["game_data"].activeSection, memory["game_data"].score),
                     "TRANSFER_GAME_DATA[newSplit]")
@@ -446,21 +436,19 @@ def ends_entry(memory, _):
     splits = memory["game_data"].splits
     instrument = memory["song_data"].instrument
     difficulty = memory["song_data"].difficulty
-    memory["split_file"].add_splits(splits, instrument, difficulty)
-    status = memory["split_file"].save_file()
-    if not status:
-        send_err_msg(0x5, "Unable to save the split file.")
-        log_main.error("Couldn't save split file")
-        raise FSMException("Couldn't save split file")
+    memory["split_db"].add_run(memory["song_data"], memory["game_data"])
+    # status = memory["split_file"].save_file()
+    # if not status:
+    #     send_err_msg(0x5, "Unable to save the split file.")
+    #     log_main.error("Couldn't save split file")
+    #     raise FSMException("Couldn't save split file")
 
 
 def ends_do(memory):
-    scene = None
-    while scene is None:
-        try:
-            scene = memory["instance_manager"].get_value("scene")
-        except InvalidAddressException:
-            log_main.exception("Couldn't access address of 'scene', retrying...")
+    scene = get_scene(memory)
+    if scene is None:
+        fsm_main.transition(state_init, True, False)
+        return "", False
     in_practice = memory["instance_manager"].get_value("in_practice") != 0
     return scene, in_practice
 
@@ -472,9 +460,9 @@ def ends_exit(memory, _):
     if "game_data" in memory:
         log_main.info("Clearing game data...")
         del memory["game_data"]
-    if "split_file" in memory:
-        log_main.info("Clearing split file data...")
-        del memory["split_file"]
+    # if "split_file" in memory:
+    #     log_main.info("Clearing split file data...")
+    #     del memory["split_file"]
 
 
 state_endscreen = State("endscreen", on_entry=ends_entry, do=ends_do, on_exit=ends_exit)
@@ -483,12 +471,10 @@ state_endscreen = State("endscreen", on_entry=ends_entry, do=ends_do, on_exit=en
 # State: Practice =========================
 
 def practice_do(memory):
-    scene = None
-    while scene is None:
-        try:
-            scene = memory["instance_manager"].get_value("scene")
-        except InvalidAddressException:
-            log_main.exception("Couldn't access address of 'scene', retrying...")
+    scene = get_scene(memory)
+    if scene is None:
+        fsm_main.transition(state_init, True, False)
+        return "", False
     in_practice = memory["instance_manager"].get_value("in_practice") != 0
     return scene, in_practice
 
@@ -510,6 +496,23 @@ state_terminate = State("terminate", do=(lambda *l: None))
 
 def send_state_message(memory, next_state):
     send_single(next_state.name, "TRANSFER_STATE_DATA")
+
+
+# Attempt to get scene
+
+def get_scene(memory, retry_amount=10):
+    scene = None
+    retry_count = 0
+    while scene is None:
+        try:
+            scene = memory["instance_manager"].get_value("scene")
+        except InvalidAddressException:
+            log_main.exception("Couldn't access address of 'scene', retrying...")
+            retry_count += 1
+            if retry_count == retry_amount:
+                return None
+            time.sleep(0.5)
+    return scene
 
 
 # Transitions =============================

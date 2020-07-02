@@ -26,7 +26,13 @@ values:
         base_offset: 0x01516D28
         offsets: [0x0, 0x10, 0x30, 0x38, 0x28, 0x18, 0x20, 0xA8]
         var_type: d
-
+        
+    player_name:
+        base_dll: UnityPlayer
+        base_offset: 0x01516D28
+        offsets: [0x0, 0x10, 0x30, 0x38, 0x28, 0x68, 0x10, 0x10, 0x14]
+        var_type: s
+        
     path:
         base_dll: UnityPlayer
         base_offset: 0x0155C8D8

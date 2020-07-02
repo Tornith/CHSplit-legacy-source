@@ -46,6 +46,7 @@ class SplitFile(object):
     def add_splits(self, splits, instrument, difficulty):
         final_score = splits[max(splits, key=splits.get)]
         song_run = (final_score, datetime.now(), splits)
+        print splits
         if (difficulty, instrument) not in self.splits:
             self.splits[(difficulty, instrument)] = [song_run]
         else:
