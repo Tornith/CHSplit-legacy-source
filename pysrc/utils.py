@@ -5,6 +5,8 @@ import configparser
 import mido
 import mido.messages.checks
 import requests
+from hashlib import sha256, sha384
+from pickle import dumps
 from packaging.version import parse as parse_version
 from yaml import safe_load, YAMLError
 
@@ -181,3 +183,33 @@ def compare_versions(str1, str2, ignore_dev=False):
         return 1
     else:
         return -1
+
+
+def generate_run_integrity_hash(run_info, splits, chsplit_ver, db_ver):
+    song_info_hash = sha256(b"{}{}{}{}{}"
+                            .format(run_info[0], run_info[1], run_info[2], run_info[3], run_info[4])).hexdigest()
+    song_integrity = sha256(b"{}: song-info=({}, {}, {}, {}); checksum={}"
+                            .format(run_info[0], run_info[1], run_info[2], run_info[3], run_info[4],
+                                    song_info_hash)).hexdigest()
+
+    splits_dump = dumps(splits)
+    splits_hash = sha256(splits_dump).hexdigest()
+    run_info_hash = sha256(b"{}{}{}{}{}{}"
+                           .format(run_info[5], run_info[6], run_info[7], run_info[8], run_info[9],
+                                   splits_hash)).hexdigest()
+    run_integrity = sha256(b"{}: run-info=({}, {}, {}, {}, {}); splits={}; checksum={}"
+                           .format(run_info[0], run_info[5], run_info[6], run_info[7], run_info[8], run_info[9],
+                                   splits_dump, run_info_hash)).hexdigest()
+
+    return sha384(
+        song_info_hash + song_integrity + splits_hash + run_info_hash + run_integrity + str(chsplit_ver) + str(db_ver))\
+        .hexdigest().decode("hex").encode("base64").replace('\n', '')
+
+
+def generate_songlist_integrity_hash(songlist):
+    songlist_hash = sha384()
+    for song, runs in songlist.items():
+        songlist_hash.update(song)
+        for run in runs:
+            songlist_hash.update(run["IHash"])
+    return songlist_hash.hexdigest().decode("hex").encode("base64").replace('\n', '')

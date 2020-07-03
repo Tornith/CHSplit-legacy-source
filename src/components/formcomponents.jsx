@@ -9,7 +9,19 @@ class FormComponent extends PureComponent{
         value: undefined,
         id: "invalidID",
         label: "Missing label",
+        description: undefined,
         restartRequired: false
+    };
+
+    generateDescription = () => {
+        if (this.props.description !== undefined){
+            return(
+                <div className={"options-help-wrapper"}>
+                    <div className={"options-help-button"}>?</div>
+                    <div className={"options-help-description"}>{this.props.description}</div>
+                </div>
+            );
+        }
     };
 }
 
@@ -23,7 +35,10 @@ export class Checkbox extends FormComponent {
                 <div className={"input-checkbox" + (this.props.value ? " selected" : "")} onClick={this.action}>
                     <img src={iconCheck} alt={this.props.value ? "Yes" : "No"} />
                 </div>
-                <label>{this.props.label}</label>
+                <label>
+                    {this.props.label}
+                    {this.generateDescription()}
+                </label>
             </section>
         );
     }
@@ -103,27 +118,32 @@ export class ListGroup extends FormComponent {
     }
 
     render() {
+        const selectedOption = this.findSelectedOption();
         return (
-            <section className={"input-wrapper list vertical" + (this.props.restartRequired ? " restart-required" : "") + (this.state.changed ? " changed" : "")}>
+            <section className={"input-wrapper list-sync vertical" + (this.props.restartRequired ? " restart-required" : "") + (this.state.changed ? " changed" : "")}>
                 <label>{this.props.label}</label>
-                <section ref={this.setWrapperRef} className="input-inner">
-                    <div className="input-list-wrapper">
-                        <div className={"input-list-selected" + (this.state.opened ? " opened" : "")} onClick={() => {this.setState({opened: !this.state.opened})}}>
-                            <div>{this.state.options.map(section => section.options).flat().find(option => option.value === this.props.value).label}</div>
+                <section className="input-inner">
+                    <div className="input-list-wrapper" ref={this.setWrapperRef}>
+                        <div className={"input-list-selected" + (this.state.opened ? " opened" : "") + ((selectedOption === undefined) ? " red-highlight" : "")} onClick={() => {this.setState({opened: !this.state.opened})}}>
+                            <div>{(selectedOption !== undefined) ? selectedOption.label : ""}</div>
                             <img src={iconDropdown} alt={"Show all"} />
                         </div>
-                        <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " collapsed")}>
-                            {this.props.options.map((section) => {
+                        {Array.isArray(this.props.options) ? <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " collapsed")}>
+                            {this.props.options.map((section, section_index) => {
                                 return (
-                                    <React.Fragment>
-                                        <div className={"input-list-section-header"}>{section.header}</div>
+                                    <React.Fragment key={section_index}>
+                                        {(this.props.options.length > 1) ? (<div className={"input-list-section-header"}>{section.header}</div>) : ""}
                                         {section.options.map((option, index) => {
-                                            return <ListOption id={this.props.id + "_" + index} value={option.value} label={option.label} onSelected={this.selectOption} selected={this.props.value === option.value} />
+                                            return <ListOption id={this.props.id + "_" + section_index + "_" + index}
+                                                               key={this.props.id + "_" + section_index + "_" + index}
+                                                               value={option.value} label={option.label}
+                                                               onSelected={this.selectOption}
+                                                               selected={this.props.value === option.value} />
                                         })}
                                     </React.Fragment>
                                 );
                             })}
-                        </div>
+                        </div> : ""}
                     </div>
                 </section>
             </section>
@@ -134,6 +154,11 @@ export class ListGroup extends FormComponent {
         this.props.onInputUpdate(this.props.id, val);
         this.setState({opened: false, changed: true});
     };
+
+    findSelectedOption = () => {
+        if (Array.isArray(this.props.options)) return this.props.options.map(section => section.options).flat().find(option => option.value === this.props.value);
+        else return undefined;
+    }
 }
 
 class ListOption extends PureComponent {
@@ -177,10 +202,11 @@ export class ListGroupAJAX extends ListGroup {
                         {Array.isArray(this.state.options) ? <div className={"input-list-dropdown" + (this.state.opened ? " opened" : " collapsed")}>
                             {this.state.options.map((section, section_index) => {
                                 return (
-                                    <React.Fragment>
+                                    <React.Fragment key={section_index}>
                                         {(this.state.options.length > 1) ? (<div className={"input-list-section-header"}>{section.header}</div>) : ""}
                                         {section.options.map((option, index) => {
                                             return <ListOption id={this.props.id + "_" + section_index + "_" + index}
+                                                               key={this.props.id + "_" + section_index + "_" + index}
                                                                value={option.value} label={option.label}
                                                                onSelected={this.selectOption}
                                                                selected={this.props.value === option.value}

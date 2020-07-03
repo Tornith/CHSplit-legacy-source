@@ -10,4 +10,5 @@ config:
   showAnimations: true
   enableAutoscroll: true
   disableHardwareAcceleration: false
+  saveRunFrequency: all
   styleChosen: defaultLight

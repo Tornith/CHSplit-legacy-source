@@ -70,7 +70,6 @@ file_handler.setFormatter(formatter)
 
 log_main.addHandler(file_handler)
 
-
 # Server ==================================
 
 sio = Server(async_mode="gevent", cors_allowed_origins="*")
@@ -118,7 +117,7 @@ def request_data(_, data_id):
         send_data(fsm_main.current_state.name, "state", "REQUEST_RESPONSE_STATE")
     elif data_id == "song":
         song_data = fsm_main.memory["song_data"].to_dict()
-        pb_data = fsm_main.memory["split_db"].get_personal_best(fsm_main.memory["song_data"])
+        pb_data = fsm_main.memory["split_db"].get_personal_best_splits(fsm_main.memory["song_data"])
         log_main.debug("song: {}".format(song_data))
         log_main.debug("pb: {}".format(pb_data))
         send_data([song_data, pb_data], ["song", "pb"], "REQUEST_RESPONSE_SONG")
@@ -219,6 +218,8 @@ def init_entry(memory, _):
 
     # Initialize the DB
     memory["split_db"] = SplitDB(exec_path=args.path, version=args.version, logger=log_main)
+    with open(args.path + "/exported_db.json", 'w') as export_file:
+        export_file.write(memory["split_db"].export_db())
 
 
 def process_exists(process_name):
@@ -311,7 +312,7 @@ def pregame_do(memory):
 
 def pregame_exit(memory, _):
     song_data = memory["song_data"].to_dict()
-    pb_data = memory["split_db"].get_personal_best(memory["song_data"])
+    pb_data = memory["split_db"].get_personal_best_splits(memory["song_data"])
     game_data = memory["game_data"].to_dict()
     send_data([song_data, pb_data], ["song", "pb"], "TRANSFER_SONG_DATA")
     send_data(game_data, "game", "TRANSFER_GAME_DATA")
@@ -433,15 +434,13 @@ state_game = State("game", do=game_do, on_entry=game_entry, on_exit=game_exit)
 
 def ends_entry(memory, _):
     memory["game_data"].split(memory["song_data"].sections[-1][0])
-    splits = memory["game_data"].splits
-    instrument = memory["song_data"].instrument
-    difficulty = memory["song_data"].difficulty
-    memory["split_db"].add_run(memory["song_data"], memory["game_data"])
-    # status = memory["split_file"].save_file()
-    # if not status:
-    #     send_err_msg(0x5, "Unable to save the split file.")
-    #     log_main.error("Couldn't save split file")
-    #     raise FSMException("Couldn't save split file")
+
+    pb_score = memory["split_db"].get_personal_best_score(memory["song_data"])
+    run_score = memory["game_data"].splits[max(memory["game_data"].splits, key=memory["game_data"].splits.get)]
+    save_freq = args.config["saveRunFrequency"]
+
+    if save_freq == "all" or save_freq == "pbs":
+        memory["split_db"].add_run(memory["song_data"], memory["game_data"])
 
 
 def ends_do(memory):

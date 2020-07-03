@@ -1,3 +1,11 @@
+### v0.3 - Split Viewer & More QoL
+    - Added - Song's artist name is now displayed in the song info panel
+    - Added - Options now show a more thorough description upon hovering over the question mark next to the option itself
+    - Added - Clicking on the menu, while being in a submenu, now closes that submenu
+    - Changed - Dropdown menus now adjust their height according to the amount of options in them
+    - Fixed - Fixed inexplicable high CPU usage when launching CHSplit before Clone Hero
+    - Fixed - Fixed CHSplit not working properly with the 'Guest' player profile
+
 ### v0.2.2 - CHLoader Compatibility
     - Added - CHLoader Compatibility
     - Added - Minimum and maximum version filtering for individual offset files in the offset selection for future compatibility

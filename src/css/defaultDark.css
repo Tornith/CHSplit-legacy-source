@@ -19,6 +19,12 @@
     --sidebar-menu-button-height: 40px;
     --sidebar-mainbar-defocus-color: rgba(0, 0, 0, 0.75);
 
+    --options-help-button-background: rgba(0, 0, 0, 0.5);
+    --options-help-button-text-color: rgba(255, 255, 255, 0.9);
+    --options-help-description-border: rgba(255, 255, 255, 0.1);
+    --options-help-description-background: #202020;
+    --options-help-description-text-color: rgba(255, 255, 255, 0.9);
+
     --sidemenu-background-color: #404040;
     --sidemenu-font-color: #fff;
 

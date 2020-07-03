@@ -59,9 +59,16 @@ class SongData(object):
 
     def get_song_id(self):
         conv_name = "".join(x for x in self.name if x.isalnum())
-        return "{}_{}".format(conv_name, self.get_song_hash()[:8])
+        return "{}_{}".format(conv_name, self.get_song_legacy_hash()[:8])
 
     def get_song_hash(self):
+        song_hash = hashlib.sha384()
+        with open(self.chart_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                song_hash.update(chunk)
+        return song_hash.hexdigest().decode("hex").encode("base64").replace('\n', '')
+
+    def get_song_legacy_hash(self):
         hash_md5 = hashlib.md5()
         with open(self.chart_path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):

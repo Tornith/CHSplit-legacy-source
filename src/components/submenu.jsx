@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import appInfo from '../appinfo.json';
 import iconSpinner from '../svg/icon-spinner.svg';
-import {Checkbox, ListGroupAJAX, RadioGroup} from './formcomponents';
+import {Checkbox, ListGroup, ListGroupAJAX, RadioGroup} from './formcomponents';
 import fetch from "./fetchWithTimeout";
 import {compareVersions} from './utils'
 
@@ -26,9 +26,21 @@ class SubmenuOptions extends Component {
             <div className={"submenu-content " + (this.props.opened ? "opened" : "")}>
                 <h2>Options</h2>
                 <div className="submenu-subcontent">
-                    <ListGroupAJAX id={"selectedGameVersion"} label={"Game version:"} getOptions={this.getGameVersions} value={this.props.preferences.selectedGameVersion} onInputUpdate={this.props.onPreferenceUpdate} restartRequired/>
+                    <ListGroupAJAX id={"selectedGameVersion"} label={"Game version:"} getOptions={this.getGameVersions} value={this.props.preferences.selectedGameVersion} onInputUpdate={this.props.onPreferenceUpdate} restartRequired
+                        description={"The big kappa"}/>
                     <hr/>
-                    <Checkbox id={"alwaysOnTop"} label={"Always on top"} value={this.props.preferences.alwaysOnTop} onInputUpdate={this.props.onPreferenceUpdate} />
+                    <Checkbox id={"alwaysOnTop"} label={"Always on top"} value={this.props.preferences.alwaysOnTop} onInputUpdate={this.props.onPreferenceUpdate}
+                              description={
+                                  <React.Fragment>
+                                      <h2>HEAR HEAR!</h2>
+                                      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Animi
+                                      consequuntur deleniti dolores, eius explicabo in obcaecati possimus quidem similique
+                                      unde. Accusamus animi ducimus esse hic impedit incidunt molestias perferendis,
+                                      voluptatem!</p>
+                                      <p>Assumenda aut cum dicta dolorum ea error eum hic ipsum
+                                      iusto magnam nemo neque, nulla praesentium sit ullam unde, vitae voluptates!
+                                      Commodi dicta doloremque, facere incidunt nam nisi sint soluta.</p>
+                                  </React.Fragment>}/>
                     <Checkbox id={"showActiveSectionDifference"} label={"Always show active section difference"} value={this.props.preferences.showActiveSectionDifference} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showActiveSectionScore"} label={"Show current score in an active section"} value={this.props.preferences.showActiveSectionScore} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"lastSectionAnchored"} label={"Anchor last section to the bottom"} value={this.props.preferences.lastSectionAnchored} onInputUpdate={this.props.onPreferenceUpdate} />
@@ -36,7 +48,10 @@ class SubmenuOptions extends Component {
                     <Checkbox id={"hideTotalScore"} label={"Hide the total score panel"} value={this.props.preferences.hideTotalScore} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"showAnimations"} label={"Show animations"} value={this.props.preferences.showAnimations} onInputUpdate={this.props.onPreferenceUpdate} />
                     <Checkbox id={"enableAutoscroll"} label={"Auto-scroll to active section"} value={this.props.preferences.enableAutoscroll} onInputUpdate={this.props.onPreferenceUpdate} />
-                    <Checkbox id={"disableHardwareAcceleration"} label={"Disable hardware acceleration"} value={this.props.preferences.disableHardwareAcceleration} onInputUpdate={this.props.onPreferenceUpdate} restartRequired/>
+                    <Checkbox id={"disableHardwareAcceleration"} label={"Disable hardware acceleration"} value={this.props.preferences.disableHardwareAcceleration} onInputUpdate={this.props.onPreferenceUpdate} restartRequired />
+                    <hr/>
+                    <ListGroup id={"saveRunFrequency"} label={"Save run frequency"} value={this.props.preferences.saveRunFrequency} onInputUpdate={this.props.onPreferenceUpdate} restartRequired
+                               options={[{header: "Default", options: [{label: "Save all runs", value: "all"}, {label: "Save every PB run", value: "pbs"}, {label: "Save only one PB run", value: "one"}]}]}/>
                     <hr/>
                     <RadioGroup id={"styleChosen"} label={"Application theme:"} options={[
                         {label:"Light theme", value:"defaultLight"},
